@@ -1,7 +1,9 @@
 
 /**
- * CHALAMANDRA - Background Orchestrator V1.6.2
+ * CHALAMANDRA - Background Orchestrator V2.0 (Live)
  */
+
+const PROXY_URL = "https://chalamandra.vercel.app/api/analyze"; // Placeholder for production URL
 
 // --- PROTOCOLO DE INSTALACIÓN Y ONBOARDING ---
 chrome.runtime.onInstalled.addListener((details) => {
@@ -63,4 +65,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true; // Respuesta asíncrona
   }
+
+  // --- NUEVO: Lógica de Proxy Fetch para la IA ---
+  if (request.action === "ANALYZE_PROXY") {
+    handleProxyAnalysis(request).then(sendResponse);
+    return true; // Importante: mantener el canal abierto para la respuesta asíncrona
+  }
 });
+
+/**
+ * Maneja la comunicación segura con el Backend Vercel
+ */
+async function handleProxyAnalysis(request) {
+  try {
+    const { prompt, systemInstruction } = request;
+
+    // Recuperar User API Key si fuera necesaria (aunque el proxy tiene su propia key)
+    // En este diseño, el proxy gestiona la key de Google, pero podríamos enviar un token de usuario si fuera necesario.
+    // Memoria dice: extension authenticates using a `userApiKey` token stored in `chrome.storage.local`.
+    // Vamos a leerlo para enviarlo como header si el proxy lo requiere, o validación futura.
+    const storage = await chrome.storage.local.get(['userApiKey']);
+    const userApiKey = storage.userApiKey;
+
+    // TODO: Validar userApiKey si el backend lo requiere.
+
+    const response = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // "Authorization": `Bearer ${userApiKey}` // Futura implementación
+      },
+      body: JSON.stringify({
+        prompt,
+        systemInstruction
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error del servidor: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { result: data.result };
+
+  } catch (error) {
+    console.error("Fallo en la conexión al proxy:", error);
+    return { error: error.message };
+  }
+}
