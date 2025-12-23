@@ -5,86 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHALAMANDRA | IA Dialéctica</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syncopate:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'obsidian-void': '#050505',
-              'champagne-gold': '#E6C275',
-              'electric-fuchsia': '#FF00CC',
-              'platinum-cyan': '#00E5FF',
-            },
-            fontFamily: {
-              'syncopate': ['Syncopate', 'sans-serif'],
-              'display': ['Playfair Display', 'serif'],
-              'main': ['Inter', 'sans-serif'],
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #050505;
-            color: #e5e7eb;
-            overflow-x: hidden;
-        }
-        .text-gradient {
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            background-image: linear-gradient(to right, #E6C275, #FF00CC);
-        }
-        .glow-card {
-            box-shadow: 0 0 20px rgba(230, 194, 117, 0.03);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .glow-card:hover {
-            box-shadow: 0 0 30px rgba(230, 194, 117, 0.08);
-            border-color: rgba(230, 194, 117, 0.2);
-            transform: translateY(-2px);
-        }
-        .gradient-border-gold {
-            position: relative;
-            background: linear-gradient(to right, #E6C275, #6b5c38);
-            padding: 1px;
-            border-radius: 0.75rem;
-        }
-        .gradient-content-dark {
-            background: #0a0a0a;
-            border-radius: 0.75rem;
-            height: 100%;
-        }
-        @keyframes scan {
-          0% { transform: translateY(-100%); opacity: 0; }
-          50% { opacity: 1; }
-          100% { transform: translateY(1000%); opacity: 0; }
-        }
-        .scanner {
-          height: 3px;
-          background: linear-gradient(to right, transparent, #E6C275, #FF00CC, transparent);
-          animation: scan 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-        .glitch-text:hover {
-          animation: glitch-anim 0.2s infinite;
-        }
-        @keyframes glitch-anim {
-          0% { transform: translate(0); }
-          25% { transform: translate(2px, -2px); }
-          50% { transform: translate(-2px, 2px); }
-          75% { transform: translate(2px, 2px); }
-          100% { transform: translate(0); }
-        }
-    </style>
 <script type="importmap">
 {
   "imports": {
@@ -96,7 +19,7 @@
 }
 </script>
 </head>
-<body class="bg-obsidian-void selection:bg-champagne-gold selection:text-black">
+<body>
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 </body>

@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppTab, DialecticResult } from './types';
 import { ASSETS, PERSONAS } from './constants';
-import * as ai from './services/geminiService';
 import { runThesis } from './services/hegel/chola';
 import { runAntithesis } from './services/hegel/malandra';
 import { runSynthesis } from './services/hegel/fresa';
@@ -28,6 +27,13 @@ const App: React.FC = () => {
     if (!chromeApi?.runtime?.onMessage) return;
 
     const messageListener = (msg: any) => {
+      // Handle the simulated response from background.js
+      if (msg.action === "ANALYSIS_COMPLETE") {
+        setResult(msg.result);
+        setLoading(false);
+        setCurrentStep('IDLE');
+      }
+
       if (msg.action === "START_DIALECTIC" || msg.action === "CONTEXT_ANALYSIS") {
         setInput(msg.text);
         setActiveTab('DIALECTIC');
@@ -57,57 +63,40 @@ const App: React.FC = () => {
     setLoading(true);
     setResult(null);
     setFeedback(null);
-    
-    try {
-      // Step 1: Thesis (Chola)
-      setCurrentStep('THESIS');
-      const thesis = await runThesis(true, textInput);
-      
-      // Step 2: Antithesis (Malandra)
-      setCurrentStep('ANTITHESIS');
-      const antithesis = await runAntithesis(textInput, thesis);
-      
-      // Step 3: Synthesis (Fresa)
-      setCurrentStep('SYNTHESIS');
-      const synthesisData = await runSynthesis(thesis, antithesis);
-      
-      const newResult: DialecticResult = {
-        thesis,
-        antithesis,
-        synthesis: synthesisData.text,
-        level: synthesisData.level,
-        alignment: synthesisData.alignment,
-        timestamp: new Date().toISOString(),
-        source: 'HYBRID'
-      };
-      
-      setResult(newResult);
-      setCurrentStep('IDLE');
+    setCurrentStep('THESIS'); // Start indicating loading immediately
 
-      // Persistence and Stats update
-      if (chromeApi?.storage?.local) {
-        chromeApi.storage.local.get(['history', 'magistral_stats'], (data: any) => {
-          const history = data.history || [];
-          chromeApi.storage.local.set({ 
-            history: [newResult, ...history].slice(0, 20) 
-          });
-
-          const stats = data.magistral_stats || { totalAnalyses: 0, localAnalyses: 0, cloudAnalyses: 0, achievements: [] };
-          chromeApi.storage.local.set({
-            magistral_stats: {
-              ...stats,
-              totalAnalyses: stats.totalAnalyses + 1,
-              cloudAnalyses: stats.cloudAnalyses + 1
+    // Dispatch message to background.js to simulate analysis
+    if (chromeApi?.runtime?.sendMessage) {
+        chromeApi.runtime.sendMessage({
+            action: "executeAnalysis",
+            prompt: textInput
+        }, (response: any) => {
+            // If the background script returns directly (not via onMessage)
+            if (response && response.result) {
+                 // But wait, the background script is simulated to return a string,
+                 // but our App expects a DialecticResult object structure.
+                 // We should probably handle the structure parsing here or in background.
+                 // The user prompt said: { result: `Respuesta simulada...` }
+                 // But DialecticDisplay needs { thesis, antithesis, synthesis ... }
+                 // I will mock a full object in the background response for now to make it work seamlessly.
             }
-          });
         });
-      }
-
-    } catch (e) {
-      console.error("Dialectic Core Breach:", e);
-      setCurrentStep('IDLE');
-    } finally {
-      setLoading(false);
+    } else {
+        // Fallback for development outside extension
+        console.warn("Chrome API not available, simulating locally");
+        setTimeout(() => {
+            setResult({
+                thesis: "Simulated Thesis",
+                antithesis: "Simulated Antithesis",
+                synthesis: "Simulated Synthesis",
+                level: 5,
+                alignment: 99,
+                timestamp: new Date().toISOString(),
+                source: "SIMULATED"
+            });
+            setLoading(false);
+            setCurrentStep('IDLE');
+        }, 2000);
     }
   };
 
@@ -138,20 +127,18 @@ const App: React.FC = () => {
     ];
 
     return (
-      <div className="flex justify-between items-center gap-2 mb-8 animate-in fade-in zoom-in duration-500">
+      <div className="step-indicator-container">
         {steps.map((step, idx) => {
           const isActive = currentStep === step.id;
           const isDone = steps.findIndex(s => s.id === currentStep) > idx;
           
           return (
-            <div key={step.id} className="flex-1 flex flex-col items-center gap-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-700 ${
-                isActive ? `${step.persona.border} ${step.persona.color} animate-pulse scale-110 shadow-[0_0_15px_rgba(230,194,117,0.3)]` : 
-                isDone ? 'border-emerald-500 text-emerald-500' : 'border-white/5 text-gray-700'
-              }`}>
+            <div key={step.id} className="step-item">
+              <div className={`step-circle ${isActive ? 'active' : ''} ${isDone ? 'border-emerald-500 text-emerald-500' : ''}`}
+                   style={isActive ? { borderColor: step.persona.color.replace('text-', 'var(--') + ')', color: step.persona.color.replace('text-', 'var(--') + ')' } : {}}>
                 {isDone ? '✓' : idx + 1}
               </div>
-              <span className={`text-[8px] font-syncopate tracking-widest ${isActive ? 'text-white' : 'text-gray-600'}`}>
+              <span className={`step-label ${isActive ? 'text-white' : ''}`}>
                 {step.label}
               </span>
             </div>
@@ -162,78 +149,75 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-obsidian-void text-gray-200 font-main flex flex-col selection:bg-champagne-gold selection:text-black">
-      <div className="scanner fixed top-0 left-0 w-full z-50 pointer-events-none" />
+    <div className="app-container">
+      <div className="scanner" />
       
-      <header className="p-4 border-b border-white/5 bg-obsidian-void/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {ASSETS.LOGO}
-            <div className="cursor-default">
-              <h1 className="text-xl font-syncopate font-bold text-gradient tracking-tighter">CHALAMANDRA</h1>
-              <p className="text-[8px] text-gray-600 tracking-[0.4em] uppercase">V1.6.2 Elite Protocol</p>
-            </div>
+      <header className="app-header">
+        <div className="header-logo-group">
+          {ASSETS.LOGO}
+          <div className="cursor-default">
+            <h1 className="text-xl font-syncopate font-bold text-gradient">CHALAMANDRA</h1>
+            <p className="text-xs text-gray-600 tracking-widest uppercase" style={{ fontSize: '8px', letterSpacing: '0.4em' }}>V1.6.2 Elite Protocol</p>
           </div>
-          <nav className="flex gap-1 bg-white/5 p-1 rounded-xl">
-            {(['DIALECTIC', 'STATS'] as AppTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-lg text-[8px] font-syncopate font-bold uppercase transition-all duration-300 ${activeTab === tab ? 'bg-champagne-gold text-black shadow-lg shadow-champagne-gold/20' : 'text-gray-500 hover:text-white'}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
         </div>
+        <nav className="header-nav">
+          {(['DIALECTIC', 'STATS'] as AppTab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`nav-btn ${activeTab === tab ? 'active' : ''}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+      <main className="main-content">
         {activeTab === 'DIALECTIC' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <section className="space-y-4">
-              <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-champagne-gold/20 to-fuchsia-500/20 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-1000"></div>
-                <textarea
-                  className="w-full h-32 bg-obsidian-void border border-white/10 rounded-2xl p-4 text-sm focus:ring-1 focus:ring-champagne-gold outline-none font-display italic placeholder-gray-800 relative z-10 transition-all"
-                  placeholder="Introduzca texto o use 'Leer Página'..."
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button 
-                  onClick={() => setUseThinking(!useThinking)}
-                  className={`flex-1 min-w-[120px] py-3 rounded-xl border text-[9px] font-syncopate uppercase tracking-widest transition-all ${useThinking ? 'border-champagne-gold text-champagne-gold bg-champagne-gold/5' : 'border-white/5 text-gray-600'}`}
-                >
-                  {useThinking ? 'Deep Thinking ON' : 'Standard Logic'}
-                </button>
-                <button 
-                  onClick={handlePageExtraction}
-                  disabled={loading}
-                  className="flex-1 min-w-[120px] py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl font-syncopate font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all"
-                >
-                  Leer Página
-                </button>
-                <button 
-                  onClick={handleManualSubmit}
-                  disabled={loading || !input}
-                  className="flex-[2] min-w-[180px] py-3 bg-champagne-gold text-black rounded-xl font-syncopate font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-champagne-gold/10"
-                >
-                  {loading ? 'Sincronizando...' : 'Ejecutar Hegel-Trinity'}
-                </button>
-              </div>
+          <div className="input-section">
+            <section className="input-wrapper">
+              <div className="input-glow-bg"></div>
+              <textarea
+                className="main-textarea"
+                placeholder="Introduzca texto o use 'Leer Página'..."
+                value={input}
+                onChange={e => setInput(e.target.value)}
+              />
             </section>
+
+            <div className="action-buttons">
+              <button
+                onClick={() => setUseThinking(!useThinking)}
+                className={`btn-base btn-toggle ${useThinking ? 'active' : ''}`}
+              >
+                {useThinking ? 'Deep Thinking ON' : 'Standard Logic'}
+              </button>
+              <button
+                onClick={handlePageExtraction}
+                disabled={loading}
+                className="btn-base btn-secondary"
+              >
+                Leer Página
+              </button>
+              <button
+                onClick={handleManualSubmit}
+                disabled={loading || !input}
+                className="btn-base btn-primary"
+              >
+                {loading ? 'Sincronizando...' : 'Ejecutar Hegel-Trinity'}
+              </button>
+            </div>
 
             {loading && (
               <div className="py-10">
                 {renderStepIndicator()}
-                <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="flex flex-col items-center justify-center gap-4">
                    <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 border-2 border-champagne-gold/20 rounded-full"></div>
-                      <div className="absolute inset-0 border-t-2 border-champagne-gold rounded-full animate-spin"></div>
+                      <div className="absolute inset-0 border-2 border-champagne-gold-20 rounded-full"></div>
+                      <div className="absolute inset-0 border-t-2 rounded-full animate-spin" style={{ borderColor: 'var(--champagne-gold)', borderRightColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: 'transparent' }}></div>
                    </div>
-                   <p className="font-syncopate text-[7px] tracking-[0.4em] text-champagne-gold uppercase animate-pulse">
+                   <p className="font-syncopate text-xs tracking-widest text-champagne-gold uppercase animate-pulse" style={{ fontSize: '7px', letterSpacing: '0.4em' }}>
                      Accediendo al Núcleo Dialéctico...
                    </p>
                 </div>
@@ -241,34 +225,34 @@ const App: React.FC = () => {
             )}
 
             {!loading && result && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 <DialecticDisplay result={result} />
                 
                 {/* Dynamic Feedback Loop */}
-                <div className="p-8 bg-white/5 border border-white/10 rounded-[2rem] text-center space-y-6 glow-card">
-                  <p className="text-[9px] font-syncopate text-gray-500 uppercase tracking-widest">¿Ha sido útil esta resolución?</p>
+                <div className="feedback-card">
+                  <p className="text-xs font-syncopate text-gray-500 uppercase tracking-widest" style={{ fontSize: '9px' }}>¿Ha sido útil esta resolución?</p>
                   <div className="flex justify-center gap-6">
                     <button 
                       onClick={() => setFeedback('Sincronía reforzada. Datos guardados.')} 
-                      className="group flex flex-col items-center gap-2"
+                      className="feedback-btn group"
                     >
-                      <div className="w-12 h-12 rounded-full border border-emerald-500/30 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all">
+                      <div className="feedback-circle up">
                         👍
                       </div>
-                      <span className="text-[7px] font-syncopate text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Útil</span>
+                      <span className="text-xs font-syncopate text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontSize: '7px' }}>Útil</span>
                     </button>
                     <button 
                       onClick={() => setFeedback('Ajuste crítico registrado para el próximo ciclo.')} 
-                      className="group flex flex-col items-center gap-2"
+                      className="feedback-btn group"
                     >
-                      <div className="w-12 h-12 rounded-full border border-rose-500/30 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-black transition-all">
+                      <div className="feedback-circle down">
                         👎
                       </div>
-                      <span className="text-[7px] font-syncopate text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Ajustar</span>
+                      <span className="text-xs font-syncopate text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontSize: '7px' }}>Ajustar</span>
                     </button>
                   </div>
                   {feedback && (
-                    <p className="text-[9px] font-syncopate text-platinum-cyan animate-pulse uppercase tracking-widest">
+                    <p className="text-xs font-syncopate text-platinum-cyan animate-pulse uppercase tracking-widest" style={{ fontSize: '9px' }}>
                       {feedback}
                     </p>
                   )}
@@ -285,7 +269,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="p-4 text-center text-[7px] text-gray-800 font-syncopate tracking-[1.2em] uppercase border-t border-white/5 bg-obsidian-void/50">
+      <footer className="app-footer">
         Magistral Decox Systems &copy; 2025 // STATUS: OPERATIONAL
       </footer>
     </div>
