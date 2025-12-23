@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppTab, DialecticResult } from './types';
 import { ASSETS, PERSONAS } from './constants';
 import * as ai from './services/geminiService';
@@ -12,37 +12,32 @@ import DialecticDisplay from './components/DialecticDisplay';
 import StatsView from './components/StatsView';
 
 const App: React.FC = () => {
-  // Access chrome APIs safely
   const chromeApi = (window as any).chrome;
   
   const [activeTab, setActiveTab] = useState<AppTab>('DIALECTIC');
-  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<'IDLE' | 'THESIS' | 'ANTITHESIS' | 'SYNTHESIS'>('IDLE');
   const [useThinking, setUseThinking] = useState(false);
   const [result, setResult] = useState<DialecticResult | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [quickInput, setQuickInput] = useState('');
 
   useEffect(() => {
-    // Robust check for the chrome extension environment
     if (!chromeApi?.runtime?.onMessage) return;
 
     const messageListener = (msg: any) => {
       if (msg.action === "START_DIALECTIC" || msg.action === "CONTEXT_ANALYSIS") {
-        setInput(msg.text);
         setActiveTab('DIALECTIC');
         executeDialectic(msg.text);
       }
     };
     chromeApi.runtime.onMessage.addListener(messageListener);
 
-    // Initial check for contextual input from background
     if (chromeApi.storage?.local) {
       chromeApi.storage.local.get(['lastContextualInput'], (data: any) => {
         if (data.lastContextualInput) {
-          const text = data.lastContextualInput;
-          setInput(text);
-          executeDialectic(text);
+          setActiveTab('DIALECTIC');
+          executeDialectic(data.lastContextualInput);
           chromeApi.storage.local.remove('lastContextualInput');
         }
       });
@@ -59,15 +54,12 @@ const App: React.FC = () => {
     setFeedback(null);
     
     try {
-      // Step 1: Thesis (Chola)
       setCurrentStep('THESIS');
       const thesis = await runThesis(true, textInput);
       
-      // Step 2: Antithesis (Malandra)
       setCurrentStep('ANTITHESIS');
       const antithesis = await runAntithesis(textInput, thesis);
       
-      // Step 3: Synthesis (Fresa)
       setCurrentStep('SYNTHESIS');
       const synthesisData = await runSynthesis(thesis, antithesis);
       
@@ -84,7 +76,6 @@ const App: React.FC = () => {
       setResult(newResult);
       setCurrentStep('IDLE');
 
-      // Persistence and Stats update
       if (chromeApi?.storage?.local) {
         chromeApi.storage.local.get(['history', 'magistral_stats'], (data: any) => {
           const history = data.history || [];
@@ -111,182 +102,171 @@ const App: React.FC = () => {
     }
   };
 
-  const handleManualSubmit = () => executeDialectic(input);
+  const handleQuickSubmit = () => {
+    if (quickInput.trim()) {
+      executeDialectic(quickInput);
+      setQuickInput('');
+    }
+  };
 
   const handlePageExtraction = () => {
     if (loading || !chromeApi?.runtime?.sendMessage) return;
     setLoading(true);
     chromeApi.runtime.sendMessage({ action: "GET_PAGE_TEXT" }, (response: any) => {
       if (response && response.text) {
-        setInput(response.text);
-        setLoading(false);
         executeDialectic(response.text);
       } else {
         setLoading(false);
-        setFeedback(response?.error || "Error al extraer texto de la página.");
+        setFeedback(response?.error || "No context found on page.");
       }
     });
   };
 
-  const renderStepIndicator = () => {
-    if (!loading) return null;
-    
-    const steps = [
-      { id: 'THESIS', label: 'TESIS', persona: PERSONAS.CHOLA },
-      { id: 'ANTITHESIS', label: 'ANTÍTESIS', persona: PERSONAS.MALANDRA },
-      { id: 'SYNTHESIS', label: 'SÍNTESIS', persona: PERSONAS.FRESA }
-    ];
-
-    return (
-      <div className="flex justify-between items-center gap-2 mb-8 animate-in fade-in zoom-in duration-500">
-        {steps.map((step, idx) => {
-          const isActive = currentStep === step.id;
-          const isDone = steps.findIndex(s => s.id === currentStep) > idx;
-          
-          return (
-            <div key={step.id} className="flex-1 flex flex-col items-center gap-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-700 ${
-                isActive ? `${step.persona.border} ${step.persona.color} animate-pulse scale-110 shadow-[0_0_15px_rgba(230,194,117,0.3)]` : 
-                isDone ? 'border-emerald-500 text-emerald-500' : 'border-white/5 text-gray-700'
-              }`}>
-                {isDone ? '✓' : idx + 1}
-              </div>
-              <span className={`text-[8px] font-syncopate tracking-widest ${isActive ? 'text-white' : 'text-gray-600'}`}>
-                {step.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-obsidian-void text-gray-200 font-main flex flex-col selection:bg-champagne-gold selection:text-black">
-      <div className="scanner fixed top-0 left-0 w-full z-50 pointer-events-none" />
+    <div className="flex flex-col h-screen bg-obsidian-void overflow-hidden">
+      <div className="scanner fixed top-0 left-0 w-full z-50 pointer-events-none opacity-20" />
       
-      <header className="p-4 border-b border-white/5 bg-obsidian-void/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {ASSETS.LOGO}
-            <div className="cursor-default">
-              <h1 className="text-xl font-syncopate font-bold text-gradient tracking-tighter">CHALAMANDRA</h1>
-              <p className="text-[8px] text-gray-600 tracking-[0.4em] uppercase">V1.6.2 Elite Protocol</p>
-            </div>
+      {/* 1. HEADER: Tab Selector */}
+      <header className="flex-none border-b border-white/5 bg-obsidian-void/80 backdrop-blur-xl z-40">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse"></div>
+            <h1 className="text-[10px] font-syncopate font-bold tracking-[0.4em] text-white">CHALAMANDRA</h1>
           </div>
-          <nav className="flex gap-1 bg-white/5 p-1 rounded-xl">
-            {(['DIALECTIC', 'STATS'] as AppTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-lg text-[8px] font-syncopate font-bold uppercase transition-all duration-300 ${activeTab === tab ? 'bg-champagne-gold text-black shadow-lg shadow-champagne-gold/20' : 'text-gray-500 hover:text-white'}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
+          <button 
+            onClick={handlePageExtraction}
+            className="text-[8px] font-syncopate text-accent-cyan/60 hover:text-accent-cyan uppercase tracking-widest transition-colors"
+          >
+            Extract Context
+          </button>
         </div>
+        <nav className="flex justify-around px-2 pb-1">
+          {([
+            { id: 'DIALECTIC', label: 'Dialéctica' },
+            { id: 'VISION', label: 'Visión' },
+            { id: 'AUDIO', label: 'Audio' },
+            { id: 'STATS', label: 'Stats' }
+          ] as {id: AppTab, label: string}[]).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-2 px-3 text-[11px] font-syncopate font-bold uppercase transition-all duration-300 relative ${activeTab === tab.id ? 'text-accent-cyan' : 'text-text-secondary hover:text-white'}`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-accent-cyan shadow-[0_0_10px_#00FFFF]"></div>
+              )}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+      {/* 2. MAIN: ContentView */}
+      <main className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {activeTab === 'DIALECTIC' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <section className="space-y-4">
-              <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-champagne-gold/20 to-fuchsia-500/20 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-1000"></div>
-                <textarea
-                  className="w-full h-32 bg-obsidian-void border border-white/10 rounded-2xl p-4 text-sm focus:ring-1 focus:ring-champagne-gold outline-none font-display italic placeholder-gray-800 relative z-10 transition-all"
-                  placeholder="Introduzca texto o use 'Leer Página'..."
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                />
+          <div className="space-y-6">
+            {!loading && !result && (
+              <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
+                <div className="mb-4">{ASSETS.LOGO}</div>
+                <p className="text-[9px] font-syncopate uppercase tracking-[0.3em]">Awaiting Dialectic Input</p>
+                <p className="text-[8px] mt-2 font-main text-text-secondary">Input text below or select from browser context menu</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button 
-                  onClick={() => setUseThinking(!useThinking)}
-                  className={`flex-1 min-w-[120px] py-3 rounded-xl border text-[9px] font-syncopate uppercase tracking-widest transition-all ${useThinking ? 'border-champagne-gold text-champagne-gold bg-champagne-gold/5' : 'border-white/5 text-gray-600'}`}
-                >
-                  {useThinking ? 'Deep Thinking ON' : 'Standard Logic'}
-                </button>
-                <button 
-                  onClick={handlePageExtraction}
-                  disabled={loading}
-                  className="flex-1 min-w-[120px] py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl font-syncopate font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all"
-                >
-                  Leer Página
-                </button>
-                <button 
-                  onClick={handleManualSubmit}
-                  disabled={loading || !input}
-                  className="flex-[2] min-w-[180px] py-3 bg-champagne-gold text-black rounded-xl font-syncopate font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-champagne-gold/10"
-                >
-                  {loading ? 'Sincronizando...' : 'Ejecutar Hegel-Trinity'}
-                </button>
-              </div>
-            </section>
+            )}
 
             {loading && (
-              <div className="py-10">
-                {renderStepIndicator()}
-                <div className="flex flex-col items-center justify-center space-y-4">
-                   <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 border-2 border-champagne-gold/20 rounded-full"></div>
-                      <div className="absolute inset-0 border-t-2 border-champagne-gold rounded-full animate-spin"></div>
-                   </div>
-                   <p className="font-syncopate text-[7px] tracking-[0.4em] text-champagne-gold uppercase animate-pulse">
-                     Accediendo al Núcleo Dialéctico...
-                   </p>
+              <div className="py-12 space-y-8 animate-pulse">
+                <div className="flex justify-between items-center gap-2">
+                   {['THESIS', 'ANTITHESIS', 'SYNTHESIS'].map((step, i) => (
+                     <div key={step} className="flex-1 flex flex-col items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] ${currentStep === step ? 'border-accent-cyan text-accent-cyan shadow-[0_0_10px_#00FFFF]' : 'border-white/5 text-gray-700'}`}>
+                          {i+1}
+                        </div>
+                        <span className="text-[7px] font-syncopate tracking-widest">{step}</span>
+                     </div>
+                   ))}
                 </div>
+                <div className="h-32 bg-white/5 rounded-2xl border border-white/5"></div>
               </div>
             )}
 
             {!loading && result && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <DialecticDisplay result={result} />
                 
-                {/* Dynamic Feedback Loop */}
-                <div className="p-8 bg-white/5 border border-white/10 rounded-[2rem] text-center space-y-6 glow-card">
-                  <p className="text-[9px] font-syncopate text-gray-500 uppercase tracking-widest">¿Ha sido útil esta resolución?</p>
-                  <div className="flex justify-center gap-6">
-                    <button 
-                      onClick={() => setFeedback('Sincronía reforzada. Datos guardados.')} 
-                      className="group flex flex-col items-center gap-2"
-                    >
-                      <div className="w-12 h-12 rounded-full border border-emerald-500/30 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all">
-                        👍
-                      </div>
-                      <span className="text-[7px] font-syncopate text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Útil</span>
-                    </button>
-                    <button 
-                      onClick={() => setFeedback('Ajuste crítico registrado para el próximo ciclo.')} 
-                      className="group flex flex-col items-center gap-2"
-                    >
-                      <div className="w-12 h-12 rounded-full border border-rose-500/30 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-black transition-all">
-                        👎
-                      </div>
-                      <span className="text-[7px] font-syncopate text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Ajustar</span>
-                    </button>
-                  </div>
-                  {feedback && (
-                    <p className="text-[9px] font-syncopate text-platinum-cyan animate-pulse uppercase tracking-widest">
+                {feedback && (
+                  <div className="mt-8 p-4 bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl text-center">
+                    <p className="text-[9px] font-syncopate text-accent-cyan uppercase tracking-widest animate-pulse">
                       {feedback}
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {activeTab === 'STATS' && (
-          <div className="max-w-5xl mx-auto">
-            <StatsView />
+        {activeTab === 'VISION' && (
+          <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
+            <svg className="w-12 h-12 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <p className="text-[9px] font-syncopate uppercase tracking-widest">Vision Mode Locked</p>
+            <p className="text-[7px] font-main mt-1 uppercase tracking-widest">Protocol V1.7 Prerequisite</p>
           </div>
         )}
+
+        {activeTab === 'AUDIO' && (
+          <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
+            <svg className="w-12 h-12 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+            <p className="text-[9px] font-syncopate uppercase tracking-widest">Audio Stream Offline</p>
+            <p className="text-[7px] font-main mt-1 uppercase tracking-widest">Encrypted Live Link Required</p>
+          </div>
+        )}
+
+        {activeTab === 'STATS' && <StatsView />}
       </main>
 
-      <footer className="p-4 text-center text-[7px] text-gray-800 font-syncopate tracking-[1.2em] uppercase border-t border-white/5 bg-obsidian-void/50">
-        Magistral Decox Systems &copy; 2025 // STATUS: OPERATIONAL
+      {/* 3. FOOTER: QuickAction Bar */}
+      <footer className="flex-none p-3 border-t border-white/5 bg-obsidian-void/90 backdrop-blur-xl">
+        <div className="flex gap-2 items-end">
+          <div className="flex-1 relative group">
+            <textarea
+              value={quickInput}
+              onChange={(e) => setQuickInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleQuickSubmit();
+                }
+              }}
+              placeholder="Análisis rápido..."
+              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-accent-cyan/40 transition-all resize-none min-h-[44px] max-h-32 font-main placeholder:text-white/10"
+            />
+            <div className="absolute bottom-2 right-2 flex items-center gap-2 opacity-40 group-focus-within:opacity-100 transition-opacity">
+               <button 
+                 onClick={() => setUseThinking(!useThinking)}
+                 className={`text-[8px] font-syncopate border px-1.5 py-0.5 rounded ${useThinking ? 'text-accent-magenta border-accent-magenta/50' : 'text-gray-600 border-white/10'}`}
+               >
+                 DEEP
+               </button>
+            </div>
+          </div>
+          <button 
+            onClick={handleQuickSubmit}
+            disabled={!quickInput.trim() || loading}
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-accent-cyan text-black hover:bg-white disabled:opacity-20 disabled:grayscale transition-all shadow-[0_0_15px_rgba(0,255,255,0.2)]"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        <div className="mt-2 text-[6px] font-syncopate text-gray-800 tracking-[0.5em] text-center uppercase">
+          Magistral Decox // Status: {loading ? 'Sincronizando' : 'Operativo'}
+        </div>
       </footer>
     </div>
   );
