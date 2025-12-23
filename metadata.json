@@ -1,0 +1,9 @@
+{
+  "name": "CHALAMANDRA | IA Dialéctica",
+  "description": "Protocolo de análisis dialéctico avanzado (Tesis, Antítesis, Síntesis) con sistema de hitos magistrales y arquitectura Hegel-Trinity.",
+  "version": "1.4.0",
+  "type": "module",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
