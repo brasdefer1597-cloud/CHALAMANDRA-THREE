@@ -30,7 +30,7 @@ export interface MagistralStats {
   achievements: string[];
 }
 
-export type AppTab = 'ANALYSIS' | 'VISION' | 'AUDIO' | 'EXPLORE' | 'STATS';
+export type AppTab = 'DIALECTIC' | 'CREATIVE' | 'AUDIO' | 'INTELLIGENCE' | 'EXPLORE' | 'STATS';
 
 export interface GroundingChunk {
   web?: { uri: string; title: string };

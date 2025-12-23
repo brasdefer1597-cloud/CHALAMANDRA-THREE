@@ -13,8 +13,10 @@ export async function runThesis(tryLocal: boolean, input: string): Promise<strin
     }
   }
 
-  return await callCloudGemini(prompt, {
+  // Fix: Extract text from the result object returned by callCloudGemini
+  const result = await callCloudGemini(prompt, {
     systemInstruction,
     temperature: 0.5,
   });
+  return result.text;
 }

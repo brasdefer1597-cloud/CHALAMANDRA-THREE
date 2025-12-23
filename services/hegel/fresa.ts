@@ -17,7 +17,8 @@ export async function runSynthesis(thesis: string, antithesis: string) {
     required: ["text", "level", "alignment"]
   };
 
-  const responseText = await callCloudGemini(prompt, {
+  // Fix: Extract the text from the result object before parsing
+  const result = await callCloudGemini(prompt, {
     systemInstruction,
     temperature: 0.7,
     responseMimeType: "application/json",
@@ -25,9 +26,9 @@ export async function runSynthesis(thesis: string, antithesis: string) {
   });
 
   try {
-    return JSON.parse(responseText);
+    return JSON.parse(result.text);
   } catch (e) {
-    console.error("JSON Parse error in Fresa:", responseText);
-    return { text: responseText, level: 3, alignment: 85 };
+    console.error("JSON Parse error in Fresa:", result.text);
+    return { text: result.text, level: 3, alignment: 85 };
   }
 }

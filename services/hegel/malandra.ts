@@ -5,8 +5,10 @@ export async function runAntithesis(input: string, thesis: string): Promise<stri
   const prompt = `Texto original: "${input}". Tesis de CHOLA: "${thesis}". Encuentra los fallos ocultos, riesgos sistémicos y desafía agresivamente las suposiciones tradicionales.`;
   const systemInstruction = "Eres MALANDRA, crítica, disruptiva y pragmática. Tu misión es destruir falsas seguridades. Representas la ANTÍTESIS.";
 
-  return await callCloudGemini(prompt, {
+  // Fix: Extract text from the result object returned by callCloudGemini
+  const result = await callCloudGemini(prompt, {
     systemInstruction,
     temperature: 0.9,
   });
+  return result.text;
 }

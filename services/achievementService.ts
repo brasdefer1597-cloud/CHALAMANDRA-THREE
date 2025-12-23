@@ -34,7 +34,8 @@ export const ACHIEVEMENTS = [
 
 export async function checkAchievements(stats: MagistralStats) {
   const chromeEnv = (window as any).chrome;
-  if (!chromeEnv || !chromeEnv.notifications) return;
+  // Deep check for notification API
+  if (!chromeEnv?.runtime || !chromeEnv?.notifications) return;
 
   const newAchievements: string[] = [...stats.achievements];
   let hasNew = false;
@@ -61,17 +62,22 @@ export async function checkAchievements(stats: MagistralStats) {
     }
   }
 
-  if (hasNew) {
+  if (hasNew && chromeEnv.storage?.local) {
     await chromeEnv.storage.local.set({ magistral_stats: { ...stats, achievements: newAchievements } });
   }
 }
 
 export async function getMagistralStats(): Promise<MagistralStats> {
   const chromeEnv = (window as any).chrome;
-  if (!chromeEnv || !chromeEnv.storage) {
+  if (!chromeEnv?.storage?.local) {
     return { totalAnalyses: 0, localAnalyses: 0, cloudAnalyses: 0, achievements: [] };
   }
 
-  const data = await chromeEnv.storage.local.get(['magistral_stats']);
-  return data.magistral_stats || { totalAnalyses: 0, localAnalyses: 0, cloudAnalyses: 0, achievements: [] };
+  try {
+    const data = await chromeEnv.storage.local.get(['magistral_stats']);
+    return data.magistral_stats || { totalAnalyses: 0, localAnalyses: 0, cloudAnalyses: 0, achievements: [] };
+  } catch (e) {
+    console.warn("Could not access chrome storage:", e);
+    return { totalAnalyses: 0, localAnalyses: 0, cloudAnalyses: 0, achievements: [] };
+  }
 }

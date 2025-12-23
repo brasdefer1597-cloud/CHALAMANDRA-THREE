@@ -2,15 +2,13 @@
 {
   "manifest_version": 3,
   "name": "CHALAMANDRA: IA Dialéctica Élite",
-  "version": "1.5.0",
-  "description": "Protocolo Hegel-Trinity Multimodal. Local Nano + Cloud Pro Image/Video/Live.",
+  "version": "1.6.2",
+  "description": "Protocolo Hegel-Trinity Multimodal. Híbrido Nano + Pro con extracción de contexto optimizada.",
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "128": "assets/icons/icon128.png"
   },
   "action": {
-    "default_title": "Abrir Chalamandra"
+    "default_title": "Abrir Command Center"
   },
   "side_panel": {
     "default_path": "index.html"
@@ -18,10 +16,10 @@
   "permissions": [
     "sidePanel",
     "activeTab",
-    "scripting",
     "storage",
     "contextMenus",
-    "notifications"
+    "notifications",
+    "geolocation"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -29,5 +27,11 @@
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
 }
