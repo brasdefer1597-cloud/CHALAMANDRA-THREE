@@ -1,0 +1,7 @@
+Please visit the following URL to authenticate:
+https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=716860248198-t1s5lv1n1msgfoe3dt7vekro8b1fpd9g.apps.googleusercontent.com&code_challenge=JdeKPoYNJkyN_wNNALOtLRS14o08SDNcbjHWQwjgYu4&code_challenge_method=S256&prompt=consent&redirect_uri=https%3A%2F%2Fjules.google%2Fauthcode.html&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faida&state=2tff-aeUy4MQq31m94Vx4euIrG2qVhxw7583I_23JdA%3D
+
+After authorizing, you'll be redirected to a page showing your authorization code.
+Copy the code from that page and paste it below.
+
+Paste the authorization code here: You are now logged in.
