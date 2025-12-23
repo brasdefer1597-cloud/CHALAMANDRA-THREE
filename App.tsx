@@ -1,8 +1,6 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppTab, DialecticResult } from './types';
-import { ASSETS, PERSONAS } from './constants';
-import * as ai from './services/geminiService';
+import { PERSONAS } from './constants';
 import { runThesis } from './services/hegel/chola';
 import { runAntithesis } from './services/hegel/malandra';
 import { runSynthesis } from './services/hegel/fresa';
@@ -10,6 +8,9 @@ import { runSynthesis } from './services/hegel/fresa';
 // Components
 import DialecticDisplay from './components/DialecticDisplay';
 import StatsView from './components/StatsView';
+import TabSelector from './components/TabSelector';
+import QuickAction from './components/QuickAction';
+import ContentView from './components/ContentView';
 
 const App: React.FC = () => {
   // Access chrome APIs safely
@@ -19,7 +20,6 @@ const App: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<'IDLE' | 'THESIS' | 'ANTITHESIS' | 'SYNTHESIS'>('IDLE');
-  const [useThinking, setUseThinking] = useState(false);
   const [result, setResult] = useState<DialecticResult | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -32,6 +32,10 @@ const App: React.FC = () => {
         setInput(msg.text);
         setActiveTab('DIALECTIC');
         executeDialectic(msg.text);
+      } else if (msg.action === "executeAnalysis") {
+         setInput(msg.text);
+         setActiveTab('DIALECTIC'); // Assuming default is Dialectic for now
+         executeDialectic(msg.text);
       }
     };
     chromeApi.runtime.onMessage.addListener(messageListener);
@@ -108,25 +112,12 @@ const App: React.FC = () => {
       setCurrentStep('IDLE');
     } finally {
       setLoading(false);
+      // Clean input after execution if needed? The prompt says "limpia el textarea"
+      setInput('');
     }
   };
 
   const handleManualSubmit = () => executeDialectic(input);
-
-  const handlePageExtraction = () => {
-    if (loading || !chromeApi?.runtime?.sendMessage) return;
-    setLoading(true);
-    chromeApi.runtime.sendMessage({ action: "GET_PAGE_TEXT" }, (response: any) => {
-      if (response && response.text) {
-        setInput(response.text);
-        setLoading(false);
-        executeDialectic(response.text);
-      } else {
-        setLoading(false);
-        setFeedback(response?.error || "Error al extraer texto de la página.");
-      }
-    });
-  };
 
   const renderStepIndicator = () => {
     if (!loading) return null;
@@ -162,79 +153,23 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-obsidian-void text-gray-200 font-main flex flex-col selection:bg-champagne-gold selection:text-black">
-      <div className="scanner fixed top-0 left-0 w-full z-50 pointer-events-none" />
+    <div id="command-center" className="h-screen bg-obsidian-void text-primary font-main flex flex-col selection:bg-accent-magenta selection:text-white">
       
-      <header className="p-4 border-b border-white/5 bg-obsidian-void/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {ASSETS.LOGO}
-            <div className="cursor-default">
-              <h1 className="text-xl font-syncopate font-bold text-gradient tracking-tighter">CHALAMANDRA</h1>
-              <p className="text-[8px] text-gray-600 tracking-[0.4em] uppercase">V1.6.2 Elite Protocol</p>
-            </div>
-          </div>
-          <nav className="flex gap-1 bg-white/5 p-1 rounded-xl">
-            {(['DIALECTIC', 'STATS'] as AppTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-lg text-[8px] font-syncopate font-bold uppercase transition-all duration-300 ${activeTab === tab ? 'bg-champagne-gold text-black shadow-lg shadow-champagne-gold/20' : 'text-gray-500 hover:text-white'}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
+      <TabSelector activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as AppTab)} />
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+      <ContentView>
         {activeTab === 'DIALECTIC' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <section className="space-y-4">
-              <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-champagne-gold/20 to-fuchsia-500/20 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-1000"></div>
-                <textarea
-                  className="w-full h-32 bg-obsidian-void border border-white/10 rounded-2xl p-4 text-sm focus:ring-1 focus:ring-champagne-gold outline-none font-display italic placeholder-gray-800 relative z-10 transition-all"
-                  placeholder="Introduzca texto o use 'Leer Página'..."
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button 
-                  onClick={() => setUseThinking(!useThinking)}
-                  className={`flex-1 min-w-[120px] py-3 rounded-xl border text-[9px] font-syncopate uppercase tracking-widest transition-all ${useThinking ? 'border-champagne-gold text-champagne-gold bg-champagne-gold/5' : 'border-white/5 text-gray-600'}`}
-                >
-                  {useThinking ? 'Deep Thinking ON' : 'Standard Logic'}
-                </button>
-                <button 
-                  onClick={handlePageExtraction}
-                  disabled={loading}
-                  className="flex-1 min-w-[120px] py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl font-syncopate font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all"
-                >
-                  Leer Página
-                </button>
-                <button 
-                  onClick={handleManualSubmit}
-                  disabled={loading || !input}
-                  className="flex-[2] min-w-[180px] py-3 bg-champagne-gold text-black rounded-xl font-syncopate font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-champagne-gold/10"
-                >
-                  {loading ? 'Sincronizando...' : 'Ejecutar Hegel-Trinity'}
-                </button>
-              </div>
-            </section>
-
+          <div className="dialectic-output">
             {loading && (
               <div className="py-10">
                 {renderStepIndicator()}
                 <div className="flex flex-col items-center justify-center space-y-4">
                    <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 border-2 border-champagne-gold/20 rounded-full"></div>
-                      <div className="absolute inset-0 border-t-2 border-champagne-gold rounded-full animate-spin"></div>
+                      <div className="absolute inset-0 border-2 border-accent-cyan/20 rounded-full"></div>
+                      <div className="absolute inset-0 border-t-2 border-accent-cyan rounded-full animate-spin"></div>
                    </div>
-                   <p className="font-syncopate text-[7px] tracking-[0.4em] text-champagne-gold uppercase animate-pulse">
-                     Accediendo al Núcleo Dialéctico...
+                   <p className="font-syncopate text-[7px] tracking-[0.4em] text-accent-cyan uppercase animate-pulse">
+                     Procesando Dialéctica...
                    </p>
                 </div>
               </div>
@@ -246,36 +181,59 @@ const App: React.FC = () => {
                 
                 {/* Dynamic Feedback Loop */}
                 <div className="p-8 bg-white/5 border border-white/10 rounded-[2rem] text-center space-y-6 glow-card">
-                  <p className="text-[9px] font-syncopate text-gray-500 uppercase tracking-widest">¿Ha sido útil esta resolución?</p>
+                  <p className="text-[9px] font-syncopate text-gray-500 uppercase tracking-widest">Feedback del Sistema</p>
                   <div className="flex justify-center gap-6">
                     <button 
-                      onClick={() => setFeedback('Sincronía reforzada. Datos guardados.')} 
+                      onClick={() => setFeedback('Sincronía reforzada.')}
                       className="group flex flex-col items-center gap-2"
                     >
                       <div className="w-12 h-12 rounded-full border border-emerald-500/30 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all">
                         👍
                       </div>
-                      <span className="text-[7px] font-syncopate text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Útil</span>
                     </button>
                     <button 
-                      onClick={() => setFeedback('Ajuste crítico registrado para el próximo ciclo.')} 
+                      onClick={() => setFeedback('Ajuste registrado.')}
                       className="group flex flex-col items-center gap-2"
                     >
                       <div className="w-12 h-12 rounded-full border border-rose-500/30 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-black transition-all">
                         👎
                       </div>
-                      <span className="text-[7px] font-syncopate text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Ajustar</span>
                     </button>
                   </div>
                   {feedback && (
-                    <p className="text-[9px] font-syncopate text-platinum-cyan animate-pulse uppercase tracking-widest">
+                    <p className="text-[9px] font-syncopate text-accent-cyan animate-pulse uppercase tracking-widest">
                       {feedback}
                     </p>
                   )}
                 </div>
               </div>
             )}
+
+            {!loading && !result && (
+               <div className="text-center mt-20 text-[#b3b3b3]">
+                 <p className="font-syncopate text-sm">ESPERANDO INPUT...</p>
+                 <p className="text-xs mt-2">Ingrese texto en la terminal inferior.</p>
+               </div>
+            )}
           </div>
+        )}
+
+        {activeTab === 'VISION' && (
+           <div className="flex items-center justify-center h-full text-[#b3b3b3]">
+             <div className="text-center">
+               <h3 className="font-syncopate text-accent-magenta">MÓDULO DE VISIÓN</h3>
+               <p className="text-sm mt-2">En espera de señal visual...</p>
+             </div>
+           </div>
+        )}
+
+        {activeTab === 'AUDIO' && (
+           <div className="flex items-center justify-center h-full text-[#b3b3b3]">
+             <div className="text-center">
+               <h3 className="font-syncopate text-accent-magenta">MÓDULO DE AUDIO</h3>
+               <p className="text-sm mt-2">Frecuencia silenciosa.</p>
+             </div>
+           </div>
         )}
 
         {activeTab === 'STATS' && (
@@ -283,11 +241,14 @@ const App: React.FC = () => {
             <StatsView />
           </div>
         )}
-      </main>
+      </ContentView>
 
-      <footer className="p-4 text-center text-[7px] text-gray-800 font-syncopate tracking-[1.2em] uppercase border-t border-white/5 bg-obsidian-void/50">
-        Magistral Decox Systems &copy; 2025 // STATUS: OPERATIONAL
-      </footer>
+      <QuickAction
+        input={input}
+        setInput={setInput}
+        onSubmit={handleManualSubmit}
+        loading={loading}
+      />
     </div>
   );
 };
