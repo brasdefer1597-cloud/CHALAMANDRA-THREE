@@ -1,20 +1,75 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# CHALAMANDRA: IA Dialéctica Élite
 
-# Run and deploy your AI Studio app
+**Protocolo Hegel-Trinity Multimodal sobre Manifest V3.**
 
-This contains everything you need to run your app locally.
+Chalamandra es una extensión de navegador de clase mundial diseñada para transformar el consumo pasivo de información en un proceso activo de pensamiento crítico. Implementa un análisis dialéctico (Tesis, Antítesis, Síntesis) para deconstruir narrativas y aumentar la cognición del usuario.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Mybu8xbLbmMmiZDagXpGZlZsMLFjcugl
+---
 
-## Run Locally
+### 🧠 Arquitectura y Flujo de Datos del Sistema
 
-**Prerequisites:**  Node.js
+El sistema opera sobre una arquitectura desacoplada y segura, orquestada por un service worker y mediada por un proxy de backend para proteger las credenciales de la API.
 
+```mermaid
+graph TD
+    subgraph "Navegador del Usuario"
+        A[Página Web Activa]
+        B(Usuario)
+    end
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+    subgraph "Extensión Chalamandra (Cliente)"
+        C(Content Script)
+        D(Background Service Worker - Orquestador)
+        E(Side Panel - Command Center UI)
+    end
+
+    subgraph "Backend Seguro (Vercel/Cloudflare)"
+        F[Proxy Endpoint]
+    end
+
+    subgraph "Google Cloud"
+        G[Gemini API]
+    end
+
+    %% Flujos de Interacción
+    B -- 1. Selecciona Texto & Clic Derecho --> D
+    D -- 2. Abre el Panel y Envía Texto Seleccionado --> E
+    
+    B -- 3. Abre el Panel Directamente --> D
+    D -- 4. Abre el Panel --> E
+
+    E -- 5. Solicita Texto Completo de la Página --> D
+    D -- 6. Reenvía Petición de Extracción --> C
+    C -- 7. Extrae Texto del DOM y Responde --> D
+    D -- 8. Devuelve Texto Extraído --> E
+
+    E -- 9. Inicia Análisis (con texto, imagen, etc.) --> D
+    D -- 10. Llama al Endpoint Seguro con el prompt --> F
+    F -- 11. Adjunta API Key del Servidor y Llama a la API --> G
+    G -- 12. Procesa y Devuelve Resultado --> F
+    F -- 13. Devuelve Resultado a la Extensión --> D
+    D -- 14. Reenvía Resultado Final --> E
+    E -- 15. Muestra Síntesis al Usuario --> B
+```
+
+### ✨ Características Principales
+
+*   **Análisis Dialéctico de Texto:** Descompone cualquier texto seleccionado o página completa en Tesis, Antítesis y Síntesis.
+*   **Protocolo Multimodal:** Capacidades para analizar imágenes (Visión) y audio (Live API).
+*   **Grounding Geográfico:** Integra `geolocation` para análisis contextuales basados en la ubicación del usuario.
+*   **Arquitectura Segura:** Las llamadas a la API de Gemini se realizan a través de un proxy de backend para nunca exponer las claves en el lado del cliente.
+*   **UI Persistente:** Utiliza la API `sidePanel` de Chrome para un "Command Center" robusto y siempre accesible.
+
+### 🛠️ Tech Stack
+
+*   **Core:** Manifest V3, JavaScript (ESM)
+*   **UI:** React (v19), TailwindCSS
+*   **Backend:** Proxy sin servidor (Vercel, Cloudflare Workers)
+*   **IA:** Google Gemini API (Pro, Nano, Veo)
+
+### 🚀 Instalación para Desarrollo
+
+1.  Clona este repositorio.
+2.  Abre Chrome y ve a `chrome://extensions`.
+3.  Activa el "Modo de desarrollador".
+4.  Haz clic en "Cargar descomprimida" y selecciona la carpeta raíz del proyecto.
