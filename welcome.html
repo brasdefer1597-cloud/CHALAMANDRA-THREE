@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>CHALAMANDRA | Protocolo de Bienvenida</title>
+    <title>CHALAMANDRA | Bienvenido al Protocolo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Syncopate:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Syncopate:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --champagne-gold: #E6C275;
@@ -29,22 +29,22 @@
         }
 
         .welcome-container {
-            max-width: 1000px;
+            max-width: 1100px;
             width: 100%;
             text-align: center;
-            background: rgba(10, 10, 10, 0.7);
-            border: 1px solid rgba(230, 194, 117, 0.15);
-            border-radius: 32px;
+            background: rgba(10, 10, 10, 0.8);
+            border: 1px solid rgba(230, 194, 117, 0.2);
+            border-radius: 40px;
             padding: 5rem 3rem;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8);
-            animation: slideUpFade 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.9);
+            animation: heroFadeIn 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
             position: relative;
         }
 
-        @keyframes slideUpFade {
-            from { opacity: 0; transform: translateY(40px); }
+        @keyframes heroFadeIn {
+            from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -53,195 +53,185 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-family: 'Cinzel', serif;
-            font-size: 4.5rem;
-            line-height: 1.1;
-            margin-bottom: 0.75rem;
-            letter-spacing: -0.02em;
-            filter: drop-shadow(0 0 15px rgba(230, 194, 117, 0.2));
+            font-size: 5rem;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.03em;
+            filter: drop-shadow(0 0 20px rgba(230, 194, 117, 0.3));
         }
 
         .subtitle {
             font-family: 'Syncopate', sans-serif;
-            font-size: 0.85rem;
-            color: #6b7280;
+            font-size: 0.8rem;
+            color: #4b5563;
             margin-bottom: 5rem;
-            letter-spacing: 0.7em;
+            letter-spacing: 0.8em;
             text-transform: uppercase;
         }
 
-        .grid-layout {
+        .trinity-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2.5rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
             margin-bottom: 5rem;
         }
 
-        .step-card {
-            background: rgba(255, 255, 255, 0.02);
+        @media (max-width: 768px) {
+            .trinity-grid { grid-template-columns: 1fr; }
+        }
+
+        .persona-card {
+            background: rgba(255, 255, 255, 0.01);
             padding: 3rem 2rem;
-            border-radius: 20px;
+            border-radius: 24px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
 
-        .step-card:hover {
-            transform: translateY(-12px);
-            border-color: rgba(230, 194, 117, 0.4);
-            background: rgba(230, 194, 117, 0.04);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        .persona-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(230, 194, 117, 0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.6s;
         }
 
-        .step-number {
-            font-family: 'Syncopate', sans-serif;
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: var(--champagne-gold);
+        .persona-card:hover {
+            transform: translateY(-15px);
+            background: rgba(230, 194, 117, 0.03);
+            border-color: rgba(230, 194, 117, 0.3);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+        }
+
+        .persona-card:hover::before { opacity: 1; }
+
+        .persona-icon {
+            font-size: 2.5rem;
             margin-bottom: 1.5rem;
             display: block;
-            letter-spacing: 0.2em;
         }
 
-        .step-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 1.25rem;
+        .persona-title {
             font-family: 'Syncopate', sans-serif;
-            letter-spacing: 0.1em;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            margin-bottom: 1rem;
             text-transform: uppercase;
         }
 
-        .step-description {
-            font-size: 0.95rem;
+        .persona-description {
+            font-size: 0.9rem;
             color: #9ca3af;
-            line-height: 1.8;
+            line-height: 1.7;
             font-weight: 300;
         }
 
-        .persona-tags {
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
+        .engine-badge {
             margin-top: 1.5rem;
-        }
-
-        .tag {
             font-family: 'Syncopate', sans-serif;
             font-size: 0.6rem;
-            padding: 4px 10px;
+            letter-spacing: 0.15em;
+            padding: 4px 12px;
             border-radius: 4px;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
+            display: inline-block;
             background: rgba(255, 255, 255, 0.05);
-            color: #9ca3af;
+            color: #6b7280;
         }
 
-        .tag.gold { color: var(--champagne-gold); border: 1px solid rgba(230, 194, 117, 0.2); }
-        .tag.fuchsia { color: var(--electric-fuchsia); border: 1px solid rgba(255, 0, 204, 0.2); }
-        .tag.cyan { color: var(--platinum-cyan); border: 1px solid rgba(0, 229, 255, 0.2); }
-
-        .btn-init {
+        .btn-start {
             display: inline-block;
-            padding: 1.5rem 4rem;
+            padding: 1.5rem 5rem;
             background: var(--champagne-gold);
             color: #000;
             font-family: 'Syncopate', sans-serif;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.4em;
-            font-size: 0.8rem;
-            border-radius: 2px;
+            letter-spacing: 0.5em;
+            font-size: 0.75rem;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.4s ease;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
-            box-shadow: 0 10px 30px rgba(230, 194, 117, 0.3);
+            box-shadow: 0 20px 40px -10px rgba(230, 194, 117, 0.3);
         }
 
-        .btn-init:hover {
+        .btn-start:hover {
             background: #fff;
-            box-shadow: 0 15px 40px rgba(255, 255, 255, 0.2);
             transform: scale(1.05);
+            box-shadow: 0 25px 50px -10px rgba(255, 255, 255, 0.2);
         }
 
-        .welcome-footer {
+        .footer-note {
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             padding-top: 3rem;
-            margin-top: 4rem;
+            margin-top: 5rem;
             font-size: 0.65rem;
-            color: #4b5563;
+            color: #374151;
             font-family: 'Syncopate', sans-serif;
-            letter-spacing: 0.5em;
+            letter-spacing: 0.6em;
             text-transform: uppercase;
         }
 
-        .ornament {
-            position: absolute;
-            width: 100px;
-            height: 1px;
-            background: linear-gradient(to right, transparent, var(--champagne-gold), transparent);
-            top: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-        }
+        /* Color accents */
+        .gold-text { color: var(--champagne-gold); }
+        .fuchsia-text { color: var(--electric-fuchsia); }
+        .cyan-text { color: var(--platinum-cyan); }
     </style>
 </head>
 <body>
     <div class="welcome-container">
-        <div class="ornament"></div>
-        
         <header>
             <h1 class="text-gradient">CHALAMANDRA</h1>
             <p class="subtitle">Magistral Decox Systems</p>
         </header>
 
-        <div class="grid-layout">
-            <!-- La Trinidad -->
-            <div class="step-card">
-                <span class="step-number">I / III</span>
-                <h3 class="step-title">La Trinidad</h3>
-                <p class="step-description">
-                    Invocación de tres mentes: <strong>Chola</strong> (Tesis), <strong>Malandra</strong> (Antítesis) y <strong>Fresa</strong> (Síntesis). Un flujo dialéctico total.
+        <div class="trinity-grid">
+            <!-- Chola -->
+            <div class="persona-card">
+                <span class="persona-icon">🏛️</span>
+                <h3 class="persona-title gold-text">Chola</h3>
+                <p class="persona-description">
+                    <strong>TESIS:</strong> Análisis de patrones establecidos y sabiduría tradicional. Tareas complejas resueltas de forma privada.
                 </p>
-                <div class="persona-tags">
-                    <span class="tag gold">Tesis</span>
-                    <span class="tag fuchsia">Anti</span>
-                    <span class="tag cyan">Sín</span>
-                </div>
+                <div class="engine-badge">GEMINI NANO (LOCAL)</div>
             </div>
 
-            <!-- El Motor -->
-            <div class="step-card">
-                <span class="step-number">II / III</span>
-                <h3 class="step-title">Arquitectura</h3>
-                <p class="step-description">
-                    <strong>Gemini Nano</strong> resuelve tareas complejas de forma local y privada. La nube profunda sintetiza la estrategia final de élite.
+            <!-- Malandra -->
+            <div class="persona-card">
+                <span class="persona-icon">⚡</span>
+                <h3 class="persona-title fuchsia-text">Malandra</h3>
+                <p class="persona-description">
+                    <strong>ANTÍTESIS:</strong> Disrupción crítica y pragmatismo callejero. Análisis detallado en profundidad sistémica.
                 </p>
-                <div class="persona-tags">
-                    <span class="tag gold">Local Nano</span>
-                    <span class="tag fuchsia">Cloud Pro</span>
-                </div>
+                <div class="engine-badge">GEMINI CLOUD (PRO)</div>
             </div>
 
-            <!-- Invocación -->
-            <div class="step-card">
-                <span class="step-number">III / III</span>
-                <h3 class="step-title">Invocación</h3>
-                <p class="step-description">
-                    Seleccione cualquier texto en su navegador, haga clic derecho y elija <strong>"Analizar con Chalamandra"</strong>. La verdad le espera.
+            <!-- Fresa -->
+            <div class="persona-card">
+                <span class="persona-icon">💎</span>
+                <h3 class="persona-title cyan-text">Fresa</h3>
+                <p class="persona-description">
+                    <strong>SÍNTESIS:</strong> Fusión armónica de opuestos en una estrategia de élite. Razonamiento detallado y estructurado.
                 </p>
-                <div class="persona-tags">
-                    <span class="tag">Right Click</span>
-                    <span class="tag">Side Panel</span>
-                </div>
+                <div class="engine-badge">GEMINI CLOUD (PRO)</div>
             </div>
         </div>
 
-        <button onclick="window.close()" class="btn-init">Iniciar Operaciones</button>
+        <div class="mb-12">
+            <h4 class="font-syncopate text-[0.7rem] tracking-[0.4em] text-gray-500 uppercase mb-4">Instrucciones de Invocación</h4>
+            <p class="text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
+                Seleccione texto en cualquier sitio web, haga clic derecho y elija <span class="text-white font-semibold">"Analizar con Chalamandra"</span>. El Side Panel se activará para ejecutar el protocolo dialéctico híbrido.
+            </p>
+        </div>
 
-        <footer class="welcome-footer">
-            Protocolo Hegel-Trinity V1.4.0 // Nominal Status
+        <button onclick="window.close()" class="btn-start">Iniciar Operaciones</button>
+
+        <footer class="footer-note">
+            Hegel-Trinity Engine // Protocolo V1.4.0 // Nominal Status
         </footer>
     </div>
 </body>

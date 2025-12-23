@@ -1,176 +1,209 @@
 
-import { GoogleGenAI } from "@google/genai";
-import { DialecticResult, MagistralStats } from "../types";
-import { runThesis } from "./hegel/chola";
-import { runAntithesis } from "./hegel/malandra";
-import { runSynthesis } from "./hegel/fresa";
-import { getMagistralStats, checkAchievements } from "./achievementService";
+import { GoogleGenAI, Modality, Type, LiveServerMessage } from "@google/genai";
+import { DialecticResult } from "../types";
 
-// Configuración de modelos de última generación
-const PRO_MODEL = 'gemini-3-pro-preview';
-const FLASH_MODEL = 'gemini-3-flash-preview';
-
-/**
- * Utilidad para reintentos con backoff exponencial
- */
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * Telemetría de protocolos para observabilidad interna
- */
-const logTelemetry = (action: string, details: any) => {
-  const timestamp = new Date().toISOString();
-  console.log(`%c[PROTOCOL] ${timestamp} | ${action}`, "color: #E6C275; font-weight: bold", details);
+const MODELS = {
+  DEEP_THINK: 'gemini-3-pro-preview',
+  FAST_TEXT: 'gemini-3-flash-preview',
+  LITE: 'gemini-flash-lite-latest',
+  IMAGE_PRO: 'gemini-3-pro-image-preview',
+  IMAGE_EDIT: 'gemini-2.5-flash-image',
+  VIDEO: 'veo-3.1-fast-generate-preview',
+  AUDIO_LIVE: 'gemini-2.5-flash-native-audio-preview-09-2025',
+  // Maps grounding is only supported in Gemini 2.5 series models.
+  MAPS: 'gemini-2.5-flash'
 };
 
 /**
- * Actualiza las estadísticas magistrales en el almacenamiento local
+ * THOUGHT PROTOCOL: Gemini 3 Pro con Thinking Budget máximo.
  */
-async function updateMagistralStats(source: 'LOCAL' | 'CLOUD' | 'HYBRID') {
-  const chromeEnv = (window as any).chrome;
-  if (!chromeEnv || !chromeEnv.storage) return;
-
-  const currentStats = await getMagistralStats();
-  const newStats: MagistralStats = {
-    ...currentStats,
-    totalAnalyses: currentStats.totalAnalyses + 1,
-    localAnalyses: source === 'LOCAL' || source === 'HYBRID' ? currentStats.localAnalyses + 1 : currentStats.localAnalyses,
-    cloudAnalyses: source === 'CLOUD' || source === 'HYBRID' ? currentStats.cloudAnalyses + 1 : currentStats.cloudAnalyses,
-  };
-
-  await chromeEnv.storage.local.set({ magistral_stats: newStats });
-  await checkAchievements(newStats);
-}
-
-/**
- * Llamador de IA en la nube con resiliencia y configuración de pensamiento
- */
-export async function callCloudGemini(
-  prompt: string, 
-  config: any = {}, 
-  retries = 3
-): Promise<string> {
+export async function runDeepThinking(prompt: string) {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  let lastError: any;
-
-  const model = config.responseSchema ? PRO_MODEL : FLASH_MODEL;
-
-  for (let i = 0; i < retries; i++) {
-    const start = performance.now();
-    try {
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: prompt,
-        config: {
-          ...config,
-          thinkingConfig: { thinkingBudget: model === PRO_MODEL ? 16384 : 8192 }
-        },
-      });
-      
-      const text = response.text;
-      if (!text) throw new Error("UPSTREAM_API_EMPTY_RESPONSE");
-      
-      logTelemetry('CLOUD_SUCCESS', { 
-        attempt: i + 1, 
-        latency: `${Math.round(performance.now() - start)}ms`,
-        model: model 
-      });
-      return text;
-    } catch (error: any) {
-      lastError = error;
-      logTelemetry('CLOUD_RETRY', { attempt: i + 1, error: error.message });
-      if (i < retries - 1) {
-        await wait(Math.pow(2, i) * 1000); 
-      }
+  const response = await ai.models.generateContent({
+    model: MODELS.DEEP_THINK,
+    contents: prompt,
+    config: {
+      thinkingConfig: { thinkingBudget: 32768 }
     }
-  }
-  logTelemetry('CLOUD_FATAL', { error: lastError.message });
-  throw lastError;
+  });
+  return response.text;
 }
 
 /**
- * Puente para IA Local (Gemini Nano) mediante Chrome Built-in AI
- * Ideal para tareas complejas rápidas que requieren privacidad.
+ * Generic Cloud Call helper for dialectic analysis steps.
  */
-export async function callLocalGemini(prompt: string, systemInstruction?: string): Promise<string> {
-  const aiInterface = typeof window !== 'undefined' ? (window as any).ai : null;
-
-  if (aiInterface && aiInterface.languageModel) {
-    try {
-      const capabilities = await aiInterface.languageModel.capabilities();
-      if (capabilities.available !== 'no') {
-        const session = await aiInterface.languageModel.create({
-          systemPrompt: systemInstruction,
-          temperature: 0.4, // Más determinista para tareas rápidas
-        });
-        const result = await session.prompt(prompt);
-        logTelemetry('LOCAL_SUCCESS', { model: 'gemini-nano' });
-        return result.trim();
-      }
-    } catch (e: any) {
-      logTelemetry('LOCAL_BYPASS', { reason: e.message });
+export async function callCloudGemini(prompt: string, options: {
+  systemInstruction?: string;
+  temperature?: number;
+  responseMimeType?: string;
+  responseSchema?: any;
+}) {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: MODELS.FAST_TEXT,
+    contents: prompt,
+    config: {
+      systemInstruction: options.systemInstruction,
+      temperature: options.temperature,
+      responseMimeType: options.responseMimeType as any,
+      responseSchema: options.responseSchema,
     }
-  }
-  throw new Error("LOCAL_ENGINE_UNAVAILABLE");
+  });
+  return response.text || "";
 }
 
 /**
- * Orquestador Dialéctico Resiliente
- * Implementa la arquitectura Local-First (Quick Complex) con Fallback a Cloud (Detailed).
+ * Local Call using window.ai (Gemini Nano) where supported.
  */
-export async function runDialecticAnalysis(
-  input: string,
-  onStepChange: (step: string, source: 'CLOUD' | 'LOCAL') => void
-): Promise<DialecticResult> {
-  let finalSource: 'CLOUD' | 'LOCAL' | 'HYBRID' = 'CLOUD';
-  const workflowStart = performance.now();
-  
-  try {
-    // 1. TESIS (CHOLA) - PRIORIDAD LOCAL (Rápida y Privada)
-    // El núcleo Nano es perfecto para este análisis de patrones inicial.
-    let thesis: string;
-    try {
-      onStepChange('CHOLA', 'LOCAL');
-      thesis = await runThesis(true, input);
-      finalSource = 'LOCAL';
-    } catch {
-      // Fallback a la nube si Nano no está disponible o falla
-      onStepChange('CHOLA', 'CLOUD');
-      thesis = await runThesis(false, input);
-      finalSource = 'CLOUD';
-    }
-
-    // 2. ANTÍTESIS (MALANDRA) - ANÁLISIS DETALLADO (Cloud)
-    // Requiere mayor profundidad crítica y acceso a razonamiento avanzado.
-    onStepChange('MALANDRA', 'CLOUD');
-    const antithesis = await runAntithesis(input, thesis);
-
-    // 3. SÍNTESIS (FRESA) - FUSIÓN ESTRATÉGICA (Cloud)
-    // Requiere el motor Pro para garantizar una síntesis elegante y estructurada (JSON).
-    onStepChange('FRESA', 'CLOUD');
-    const synthesisData = await runSynthesis(thesis, antithesis);
-    
-    const resultSource = finalSource === 'LOCAL' ? 'HYBRID' : 'CLOUD';
-    
-    // Registrar estadísticas para el sistema de hitos
-    await updateMagistralStats(resultSource);
-
-    logTelemetry('WORKFLOW_COMPLETE', { 
-      totalLatency: `${Math.round(performance.now() - workflowStart)}ms`,
-      source: resultSource 
+export async function callLocalGemini(prompt: string, systemInstruction?: string) {
+  // @ts-ignore - window.ai is experimental and may not be typed in all environments
+  if (typeof window !== 'undefined' && (window as any).ai?.languageModel) {
+    // @ts-ignore
+    const session = await (window as any).ai.languageModel.create({
+      systemPrompt: systemInstruction
     });
-
-    return {
-      thesis,
-      antithesis,
-      synthesis: synthesisData.text,
-      level: synthesisData.level || 3,
-      alignment: synthesisData.alignment || 90,
-      timestamp: new Date().toISOString(),
-      source: resultSource
-    };
-  } catch (error: any) {
-    logTelemetry('WORKFLOW_ABORTED', { error: error.message });
-    throw error;
+    // @ts-ignore
+    const result = await session.prompt(prompt);
+    session.destroy();
+    return result;
   }
+  throw new Error("Local model (Gemini Nano) is not available in this browser environment.");
+}
+
+/**
+ * VISION PROTOCOL: Imagen Pro con Aspect Ratio variable.
+ */
+export async function generateEliteImage(prompt: string, aspectRatio: string = "16:9") {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: MODELS.IMAGE_PRO,
+    contents: { parts: [{ text: prompt }] },
+    config: {
+      imageConfig: { aspectRatio: aspectRatio as any, imageSize: "1K" }
+    }
+  });
+  // Find the image part, do not assume it is the first part.
+  const part = response.candidates?.[0].content.parts.find(p => p.inlineData);
+  return part ? `data:image/png;base64,${part.inlineData.data}` : null;
+}
+
+/**
+ * EDIT PROTOCOL: Inpainting / Edición con 2.5 Flash Image.
+ */
+export async function editEliteImage(base64: string, instruction: string) {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: MODELS.IMAGE_EDIT,
+    contents: {
+      parts: [
+        { inlineData: { data: base64, mimeType: 'image/png' } },
+        { text: instruction }
+      ]
+    }
+  });
+  // Find the image part, do not assume it is the first part.
+  const part = response.candidates?.[0].content.parts.find(p => p.inlineData);
+  return part ? `data:image/png;base64,${part.inlineData.data}` : null;
+}
+
+/**
+ * VIDEO PROTOCOL: Generación Veo 3.1 Fast.
+ */
+export async function generateEliteVideo(prompt: string, aspectRatio: "16:9" | "9:16" = "16:9") {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  let operation = await ai.models.generateVideos({
+    model: MODELS.VIDEO,
+    prompt: prompt,
+    config: { numberOfVideos: 1, resolution: '1080p', aspectRatio: aspectRatio }
+  });
+
+  while (!operation.done) {
+    await new Promise(r => setTimeout(r, 10000));
+    operation = await ai.operations.getVideosOperation({ operation: operation });
+  }
+  const url = operation.response?.generatedVideos?.[0]?.video?.uri;
+  // Always append API key when fetching from the download link as per SDK rules.
+  return `${url}&key=${process.env.API_KEY}`;
+}
+
+/**
+ * EXPLORE PROTOCOL: Maps Grounding con ubicación real.
+ */
+export async function exploreEliteMaps(query: string) {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+          model: MODELS.MAPS,
+          contents: query,
+          config: {
+            tools: [{ googleMaps: {} }],
+            toolConfig: {
+              retrievalConfig: {
+                latLng: { latitude: pos.coords.latitude, longitude: pos.coords.longitude }
+              }
+            }
+          }
+        });
+        resolve({
+          text: response.text,
+          sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks
+        });
+      } catch (e) { reject(e); }
+    }, (err) => reject(err));
+  });
+}
+
+/**
+ * LIVE PROTOCOL: Audio nativo bidireccional.
+ */
+export function connectEliteLive(callbacks: {
+  onAudio: (data: string) => void,
+  onTranscription: (text: string, isUser: boolean) => void
+}) {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return ai.live.connect({
+    model: MODELS.AUDIO_LIVE,
+    callbacks: {
+      onopen: () => console.debug('Live API: Connection opened'),
+      onmessage: async (message: LiveServerMessage) => {
+        // Extract the model's audio output from candidates/parts.
+        const base64EncodedAudioString =
+          message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+        if (base64EncodedAudioString) callbacks.onAudio(base64EncodedAudioString);
+        
+        // Handle output and input transcriptions.
+        if (message.serverContent?.outputTranscription) {
+          callbacks.onTranscription(message.serverContent.outputTranscription.text, false);
+        }
+        if (message.serverContent?.inputTranscription) {
+          callbacks.onTranscription(message.serverContent.inputTranscription.text, true);
+        }
+      },
+      onerror: (e: any) => console.error('Live API: Connection error', e),
+      onclose: (e: any) => console.debug('Live API: Connection closed', e),
+    },
+    config: {
+      responseModalities: [Modality.AUDIO],
+      outputAudioTranscription: {},
+      inputAudioTranscription: {},
+      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }
+    }
+  });
+}
+
+// Audio Utils (Decoding raw PCM)
+// The audio bytes returned by the API is raw PCM data. 
+// Standard AudioContext.decodeAudioData is NOT compatible with raw PCM streams.
+export async function decodePcm(base64: string, ctx: AudioContext): Promise<AudioBuffer> {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  
+  const int16 = new Int16Array(bytes.buffer);
+  const buffer = ctx.createBuffer(1, int16.length, 24000);
+  const channel = buffer.getChannelData(0);
+  for (let i = 0; i < int16.length; i++) channel[i] = int16[i] / 32768.0;
+  return buffer;
 }
