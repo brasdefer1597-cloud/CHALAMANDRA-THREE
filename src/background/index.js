@@ -14,7 +14,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
   // 2. Abrir página de bienvenida solo en la primera instalación
   if (details.reason === 'install') {
-    chrome.tabs.create({ url: "welcome.html" });
+    chrome.tabs.create({ url: "src/sidepanel/welcome.html" });
   }
 });
 
@@ -22,7 +22,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.setOptions({
     tabId: tab.id,
-    path: 'index.html',
+    path: 'src/sidepanel/sidepanel.html',
     enabled: true
   });
   chrome.sidePanel.open({ windowId: tab.windowId });
@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             try {
                 await chrome.scripting.executeScript({
                     target: { tabId: tabId },
-                    files: ['content.js']
+                    files: ['src/content/index.js']
                 });
                 // Reintentar envío de mensaje
                 chrome.tabs.sendMessage(tabId, { action: "EXTRACT_PAGE_CONTENT" }, (response) => {

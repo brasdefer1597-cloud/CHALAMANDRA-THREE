@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { AppTab, DialecticResult } from './types';
-import { ASSETS, PERSONAS } from './constants';
-import * as ai from './services/geminiService';
-import { runThesis } from './services/hegel/chola';
-import { runAntithesis } from './services/hegel/malandra';
-import { runSynthesis } from './services/hegel/fresa';
+import { AppTab, DialecticResult } from '../types';
+import { ASSETS, PERSONAS } from '../utils/constants';
+import * as ai from '../services/geminiService';
+import { runThesis } from '../services/hegel/chola';
+import { runAntithesis } from '../services/hegel/malandra';
+import { runSynthesis } from '../services/hegel/fresa';
 
 // Lazy Components
-const DialecticDisplay = lazy(() => import('./components/DialecticDisplay'));
-const StatsView = lazy(() => import('./components/StatsView'));
+const DialecticDisplay = lazy(() => import('../components/DialecticDisplay'));
+const StatsView = lazy(() => import('../components/StatsView'));
 
 const App: React.FC = () => {
   const chromeApi = (window as any).chrome;

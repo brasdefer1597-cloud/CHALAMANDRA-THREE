@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { DialecticResult } from '../types';
-import { PERSONAS } from '../constants';
+import { PERSONAS } from '../utils/constants';
 
 interface DialecticDisplayProps {
   result: DialecticResult;

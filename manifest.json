@@ -11,7 +11,7 @@
     "default_title": "Abrir Command Center"
   },
   "side_panel": {
-    "default_path": "index.html"
+    "default_path": "src/sidepanel/sidepanel.html"
   },
   "permissions": [
     "sidePanel",
@@ -26,7 +26,7 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "src/background/index.js",
     "type": "module"
   }
 }

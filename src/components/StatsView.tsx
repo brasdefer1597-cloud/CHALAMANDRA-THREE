@@ -2,7 +2,7 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { MagistralStats, DialecticResult } from '../types';
 import { getMagistralStats, ACHIEVEMENTS } from '../services/achievementService';
-import { ASSETS } from '../constants';
+import { ASSETS } from '../utils/constants';
 
 const HistoryList = lazy(() => import('./HistoryList'));
 
