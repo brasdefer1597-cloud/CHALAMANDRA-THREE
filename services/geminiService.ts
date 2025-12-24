@@ -2,8 +2,32 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Configurable Endpoint
-// In production, this should be the deployed Vercel URL
 const PROXY_ENDPOINT = "https://chalamandra.vercel.app/api/analyze";
+
+// Exporting parser for testing purposes
+export function parseChunk(buffer: string, processedIndex: number): { text: string, newProcessedIndex: number, foundNewText: boolean } {
+    let fullText = "";
+    const searchBuffer = buffer.slice(processedIndex);
+    const regex = /"text":\s*"((?:[^"\\]|\\.)*)"/g;
+    let match;
+    let lastMatchEnd = 0;
+    let foundNewText = false;
+
+    while ((match = regex.exec(searchBuffer)) !== null) {
+            try {
+                const extracted = JSON.parse(`"${match[1]}"`);
+                fullText += extracted;
+                foundNewText = true;
+                lastMatchEnd = match.index + match[0].length;
+            } catch (e) {}
+    }
+
+    return {
+        text: fullText,
+        newProcessedIndex: processedIndex + lastMatchEnd,
+        foundNewText
+    };
+}
 
 export async function callCloudGemini(prompt: string, options: any = {}, onUpdate?: (text: string) => void) {
   try {
@@ -31,9 +55,8 @@ export async function callCloudGemini(prompt: string, options: any = {}, onUpdat
     const decoder = new TextDecoder();
     let fullText = "";
     let buffer = "";
-    let processedIndex = 0; // Optimization: track where we stopped
+    let processedIndex = 0;
 
-    // Robust Stream Parsing with Optimization
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -41,31 +64,16 @@ export async function callCloudGemini(prompt: string, options: any = {}, onUpdat
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
 
-        // Only scan new part + some overlap?
-        // JSON tokens might be split.
-        // Safer to scan from `processedIndex` but need to be careful not to match partials.
-        // Actually, scanning from processedIndex is fine if we only advance `processedIndex` for COMPLETE matches.
+        const parsed = parseChunk(buffer, processedIndex);
 
-        const searchBuffer = buffer.slice(processedIndex);
-        const regex = /"text":\s*"((?:[^"\\]|\\.)*)"/g;
-        let match;
-        let lastMatchEnd = 0;
-        let foundNewText = false;
+        if (parsed.foundNewText) {
+             fullText += parsed.text; // Accumulate extracted text?
+             // Wait, parseChunk returns logic.
+             // My previous logic was: fullText += extracted.
+             // And parseChunk returns extracted text from CURRENT search buffer.
 
-        while ((match = regex.exec(searchBuffer)) !== null) {
-                try {
-                    const extracted = JSON.parse(`"${match[1]}"`);
-                    fullText += extracted;
-                    foundNewText = true;
-                    // Update lastMatchEnd relative to searchBuffer
-                    lastMatchEnd = match.index + match[0].length;
-                } catch (e) {}
-        }
-
-        if (foundNewText) {
              if (onUpdate) onUpdate(fullText);
-             // Advance processedIndex by the amount we safely consumed
-             processedIndex += lastMatchEnd;
+             processedIndex = parsed.newProcessedIndex;
         }
     }
 
@@ -93,9 +101,6 @@ export async function callLocalGemini(prompt: string, systemInstruction?: string
 }
 
 export async function generateEliteImage(prompt: string, aspectRatio: string = "1:1") {
-  // Restored Client-Side logic for now as requested by reviewer
-  // Note: This exposes API Key if not careful, but preserving existing behavior is key.
-  // The original code used process.env.API_KEY.
   try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
