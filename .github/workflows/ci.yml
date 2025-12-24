@@ -1,0 +1,29 @@
+name: Correr Tests
+
+# Se activa cuando abres un PR hacia main o haces push directo
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Descarga tu código
+    - uses: actions/checkout@v3
+
+    # 2. Prepara el entorno (ej. Node.js)
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+
+    # 3. Instala las dependencias
+    - run: npm ci
+
+    # 4. EJECUTA LOS TESTS (Aquí es donde Jules se asegura que todo sirve)
+    - run: npm test
