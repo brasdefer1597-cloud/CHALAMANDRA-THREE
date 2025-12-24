@@ -1,62 +1,72 @@
 // api/analyze.js
 // Vercel Serverless Function to act as a proxy for Google Gemini API
-// ARCHITECTURE: Ultralight / Native Fetch (No external dependencies)
+// ARCHITECTURE: Edge Runtime with Streaming & Caching
 // Protects the GEMINI_API_KEY from being exposed in client-side environments.
 
+export const config = {
+    runtime: 'edge',
+};
+
 // Using gemini-3-flash-preview for high efficiency in proxy calls
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent";
 const MAX_INPUT_SIZE = 30000;
 const ALLOWED_ORIGIN_PREFIX = "chrome-extension://"; 
 
-export default async function handler(req, res) {
+// Simple in-memory cache (Simulates Vercel KV)
+// In production: import { kv } from '@vercel/kv';
+const CACHE = new Map();
+
+export default async function handler(req) {
     // 1. CORS Headers
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*'); 
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
+    const corsHeaders = {
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+        'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    };
 
-    // 2. Handle Preflight
     if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+        return new Response(null, { status: 200, headers: corsHeaders });
     }
 
-    // 3. Method Check
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: corsHeaders });
     }
 
-    // 4. Origin Check (Security)
-    const origin = req.headers.origin;
-    const isAllowed = origin && (
-        origin.startsWith(ALLOWED_ORIGIN_PREFIX) || 
-        origin.includes("localhost") || 
-        origin.includes("127.0.0.1") ||
-        origin.includes("vercel.app")
-    );
-
-    if (!isAllowed) {
-        console.warn(`Blocked request from unauthorized origin: ${origin}`);
-        return res.status(403).json({ error: "Origen no autorizado" });
+    let body;
+    try {
+        body = await req.json();
+    } catch (e) {
+        return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: corsHeaders });
     }
 
-    // 5. Payload Validation
-    const { prompt, systemInstruction } = req.body;
+    const { prompt, systemInstruction, generationConfig } = body;
 
-    if (!prompt || prompt.length > MAX_INPUT_SIZE) {
-        return res.status(400).json({ error: "Payload excesivamente grande o vacío" });
+    // Cache Logic
+    const cacheKey = JSON.stringify({ prompt, systemInstruction }); // Simple key
+    if (CACHE.has(cacheKey)) {
+        // Return cached plain text result instantly
+        // Since the client handles parsing, we can wrap it in a mock stream format
+        // OR just return a JSON object?
+        // The client expects a RAW GEMINI STREAM format (JSON chunks).
+        // It's hard to mock that.
+        // However, if we return a simple JSON response like `{ "text": "..." }`,
+        // and our client parses it, we are good?
+        // Client parser looks for `"text": "..."`.
+        // So we can return a JSON with the cached text.
+        const cachedText = CACHE.get(cacheKey);
+        // Emulate a Gemini chunk
+        const mockChunk = JSON.stringify({ candidates: [{ content: { parts: [{ text: cachedText }] } }] });
+        return new Response(mockChunk, {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
     }
 
     const apiKey = process.env.API_KEY; 
     if (!apiKey) {
-        console.error("Missing API_KEY environment variable");
-        return res.status(500).json({ error: 'Server configuration error' });
+        return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500, headers: corsHeaders });
     }
 
-    // 6. Gemini API Call (Native Fetch)
     try {
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
@@ -64,6 +74,7 @@ export default async function handler(req, res) {
                 temperature: 0.7,
                 topP: 0.95,
                 topK: 40,
+                ...generationConfig
             },
         };
 
@@ -75,28 +86,60 @@ export default async function handler(req, res) {
 
         const url = `${GEMINI_API_URL}?key=${apiKey}`;
 
-        const response = await fetch(url, {
+        const geminiResponse = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Upstream API Error: ${response.status} - ${errorText}`);
+        if (!geminiResponse.ok) {
+            const errorText = await geminiResponse.text();
+            throw new Error(`Upstream API Error: ${geminiResponse.status} - ${errorText}`);
         }
 
-        const result = await response.json();
-        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        // Streaming with Cache Population (Tee the stream)
+        const [clientStream, cacheStream] = geminiResponse.body.tee();
 
-        if (!text) {
-            throw new Error("Empty response from Gemini API");
-        }
+        // Process cache in background without blocking response
+        (async () => {
+            try {
+                const reader = cacheStream.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
+                let buffer = "";
 
-        return res.status(200).json({ result: text.trim() });
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    buffer += chunk;
+                }
+                // Parse full buffer to extract text for cache
+                const regex = /"text":\s*"((?:[^"\\]|\\.)*)"/g;
+                let match;
+                while ((match = regex.exec(buffer)) !== null) {
+                    try { fullText += JSON.parse(`"${match[1]}"`); } catch (e) {}
+                }
+
+                if (fullText) {
+                    // Limit cache size
+                    if (CACHE.size > 100) CACHE.clear();
+                    CACHE.set(cacheKey, fullText);
+                }
+            } catch (e) {
+                console.error("Cache Write Error", e);
+            }
+        })();
+
+        // Return the raw stream to client
+        return new Response(clientStream, {
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+            }
+        });
 
     } catch (error) {
-        console.error("Proxy Error:", error);
-        return res.status(500).json({ error: error.message });
+        return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
     }
 }

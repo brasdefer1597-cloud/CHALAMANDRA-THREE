@@ -1,6 +1,6 @@
 
 /**
- * CHALAMANDRA - Background Orchestrator V1.6.2
+ * CHALAMANDRA - Background Orchestrator V1.6.3
  */
 
 // --- PROTOCOLO DE INSTALACIÓN Y ONBOARDING ---
@@ -48,15 +48,60 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Petición desde el Side Panel para obtener el texto de la página
   if (request.action === "GET_PAGE_TEXT") {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (tabs[0] && tabs[0].id) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "EXTRACT_PAGE_CONTENT" }, (response) => {
-          if (chrome.runtime.lastError) {
-            sendResponse({ error: "No se pudo comunicar con la página activa." });
-          } else {
-            sendResponse(response);
-          }
+        const tabId = tabs[0].id;
+
+        // Función de ayuda para extraer
+        const tryExtract = () => {
+             chrome.tabs.sendMessage(tabId, { action: "EXTRACT_PAGE_CONTENT" }, (response) => {
+                if (chrome.runtime.lastError) {
+                  // Si hay error, asumimos que no hay script, inyectamos y reintentamos.
+                  // Pero OJO: esto podría ser loop infinito si el script falla por otra razón.
+                  // Así que lo hacemos UNA vez.
+                  injectAndExtract();
+                } else {
+                  sendResponse(response);
+                }
+              });
+        };
+
+        const injectAndExtract = async () => {
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tabId },
+                    files: ['content.js']
+                });
+                // Reintentar envío de mensaje
+                chrome.tabs.sendMessage(tabId, { action: "EXTRACT_PAGE_CONTENT" }, (response) => {
+                    if (chrome.runtime.lastError) {
+                         sendResponse({ error: "Fallo tras inyección. Página protegida o error de script." });
+                    } else {
+                         sendResponse(response);
+                    }
+                });
+            } catch (err) {
+                console.error("Injection error: ", err);
+                sendResponse({ error: "No se pudo inyectar el script en la página." });
+            }
+        };
+
+        // Estrategia: Intentar comunicar primero. Si falla, inyectar.
+        chrome.tabs.sendMessage(tabId, { action: "PING" }, (response) => {
+             // Si content script responde al PING (o cualquier mensaje), no inyectamos.
+             // Pero content.js actual solo escucha EXTRACT_PAGE_CONTENT.
+             // Así que enviamos EXTRACT_PAGE_CONTENT directo.
+             chrome.tabs.sendMessage(tabId, { action: "EXTRACT_PAGE_CONTENT" }, (response) => {
+                 if (chrome.runtime.lastError) {
+                     // Error de conexión -> Script no inyectado (o tab muerta/protegida)
+                     injectAndExtract();
+                 } else {
+                     // Éxito
+                     sendResponse(response);
+                 }
+             });
         });
+
       } else {
         sendResponse({ error: "No hay pestaña activa detectada." });
       }

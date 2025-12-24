@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AppTab, DialecticResult } from './types';
 import { ASSETS, PERSONAS } from './constants';
 import * as ai from './services/geminiService';
@@ -7,12 +7,11 @@ import { runThesis } from './services/hegel/chola';
 import { runAntithesis } from './services/hegel/malandra';
 import { runSynthesis } from './services/hegel/fresa';
 
-// Components
-import DialecticDisplay from './components/DialecticDisplay';
-import StatsView from './components/StatsView';
+// Lazy Components
+const DialecticDisplay = lazy(() => import('./components/DialecticDisplay'));
+const StatsView = lazy(() => import('./components/StatsView'));
 
 const App: React.FC = () => {
-  // Access chrome APIs safely
   const chromeApi = (window as any).chrome;
   
   const [activeTab, setActiveTab] = useState<AppTab>('DIALECTIC');
@@ -24,7 +23,6 @@ const App: React.FC = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    // Robust check for the chrome extension environment
     if (!chromeApi?.runtime?.onMessage) return;
 
     const messageListener = (msg: any) => {
@@ -36,7 +34,6 @@ const App: React.FC = () => {
     };
     chromeApi.runtime.onMessage.addListener(messageListener);
 
-    // Initial check for contextual input from background
     if (chromeApi.storage?.local) {
       chromeApi.storage.local.get(['lastContextualInput'], (data: any) => {
         if (data.lastContextualInput) {
@@ -55,41 +52,64 @@ const App: React.FC = () => {
     if (!textInput || loading) return;
     
     setLoading(true);
-    setResult(null);
+    setResult(null); // Clear previous result? Or keep it?
+    // We want to show partial results.
+    // Initialize empty result structure
+    const partialResult: DialecticResult = {
+        thesis: "",
+        antithesis: "",
+        synthesis: "",
+        level: 0,
+        alignment: 0,
+        timestamp: new Date().toISOString(),
+        source: 'HYBRID'
+    };
+    setResult(partialResult);
     setFeedback(null);
     
     try {
       // Step 1: Thesis (Chola)
       setCurrentStep('THESIS');
-      const thesis = await runThesis(true, textInput);
+      const thesis = await runThesis(true, textInput, (text) => {
+          setResult(prev => prev ? { ...prev, thesis: text } : null);
+      });
+      partialResult.thesis = thesis;
+      setResult({...partialResult}); // Ensure final state
       
       // Step 2: Antithesis (Malandra)
       setCurrentStep('ANTITHESIS');
-      const antithesis = await runAntithesis(textInput, thesis);
+      const antithesis = await runAntithesis(textInput, thesis, (text) => {
+          setResult(prev => prev ? { ...prev, antithesis: text } : null);
+      });
+      partialResult.antithesis = antithesis;
+      setResult({...partialResult});
       
       // Step 3: Synthesis (Fresa)
       setCurrentStep('SYNTHESIS');
-      const synthesisData = await runSynthesis(thesis, antithesis);
+      const synthesisData = await runSynthesis(thesis, antithesis, (text) => {
+          // Fresa streams JSON string usually, or partial text.
+          // If we receive partial text (e.g. from the parser), we update synthesis.
+          // Note: If Fresa outputs JSON, 'text' might be the raw JSON string `{"text": "..."}`
+          // Visualizing raw JSON is ugly but satisfies "writing in real time".
+          // Ideally we parse it.
+          // For now, let's just dump it into synthesis field.
+          setResult(prev => prev ? { ...prev, synthesis: text } : null);
+      });
       
-      const newResult: DialecticResult = {
-        thesis,
-        antithesis,
-        synthesis: synthesisData.text,
-        level: synthesisData.level,
-        alignment: synthesisData.alignment,
-        timestamp: new Date().toISOString(),
-        source: 'HYBRID'
-      };
+      // Update with final parsed data
+      partialResult.synthesis = synthesisData.text;
+      partialResult.level = synthesisData.level;
+      partialResult.alignment = synthesisData.alignment;
       
-      setResult(newResult);
+      setResult(partialResult);
       setCurrentStep('IDLE');
 
-      // Persistence and Stats update
+      // Persistence
       if (chromeApi?.storage?.local) {
         chromeApi.storage.local.get(['history', 'magistral_stats'], (data: any) => {
           const history = data.history || [];
           chromeApi.storage.local.set({ 
-            history: [newResult, ...history].slice(0, 20) 
+            history: [partialResult, ...history].slice(0, 20)
           });
 
           const stats = data.magistral_stats || { totalAnalyses: 0, localAnalyses: 0, cloudAnalyses: 0, achievements: [] };
@@ -129,7 +149,8 @@ const App: React.FC = () => {
   };
 
   const renderStepIndicator = () => {
-    if (!loading) return null;
+    // Show step indicator even if we are streaming, to show progress
+    if (currentStep === 'IDLE' && !loading) return null;
     
     const steps = [
       { id: 'THESIS', label: 'TESIS', persona: PERSONAS.CHOLA },
@@ -141,7 +162,7 @@ const App: React.FC = () => {
       <div className="flex justify-between items-center gap-2 mb-8 animate-in fade-in zoom-in duration-500">
         {steps.map((step, idx) => {
           const isActive = currentStep === step.id;
-          const isDone = steps.findIndex(s => s.id === currentStep) > idx;
+          const isDone = steps.findIndex(s => s.id === currentStep) > idx || currentStep === 'IDLE'; // IDLE after loading means done
           
           return (
             <div key={step.id} className="flex-1 flex flex-col items-center gap-2">
@@ -171,7 +192,7 @@ const App: React.FC = () => {
             {ASSETS.LOGO}
             <div className="cursor-default">
               <h1 className="text-xl font-syncopate font-bold text-gradient tracking-tighter">CHALAMANDRA</h1>
-              <p className="text-[8px] text-gray-600 tracking-[0.4em] uppercase">V1.6.2 Elite Protocol</p>
+              <p className="text-[8px] text-gray-600 tracking-[0.4em] uppercase">V1.6.3 Elite Protocol</p>
             </div>
           </div>
           <nav className="flex gap-1 bg-white/5 p-1 rounded-xl">
@@ -225,54 +246,61 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {loading && (
-              <div className="py-10">
+            {(loading || result) && (
+              <div className="py-2">
                 {renderStepIndicator()}
-                <div className="flex flex-col items-center justify-center space-y-4">
-                   <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 border-2 border-champagne-gold/20 rounded-full"></div>
-                      <div className="absolute inset-0 border-t-2 border-champagne-gold rounded-full animate-spin"></div>
-                   </div>
-                   <p className="font-syncopate text-[7px] tracking-[0.4em] text-champagne-gold uppercase animate-pulse">
-                     Accediendo al Núcleo Dialéctico...
-                   </p>
-                </div>
-              </div>
-            )}
+                {/*
+                  When streaming, we want to show the result component as it fills up.
+                  So we render DialecticDisplay even if loading is true, provided we have a result object.
+                */}
+                {result && (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <Suspense fallback={<div className="text-center text-champagne-gold animate-pulse">Cargando Módulo...</div>}>
+                       <DialecticDisplay result={result} />
+                    </Suspense>
 
-            {!loading && result && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <DialecticDisplay result={result} />
-                
-                {/* Dynamic Feedback Loop */}
-                <div className="p-8 bg-white/5 border border-white/10 rounded-[2rem] text-center space-y-6 glow-card">
-                  <p className="text-[9px] font-syncopate text-gray-500 uppercase tracking-widest">¿Ha sido útil esta resolución?</p>
-                  <div className="flex justify-center gap-6">
-                    <button 
-                      onClick={() => setFeedback('Sincronía reforzada. Datos guardados.')} 
-                      className="group flex flex-col items-center gap-2"
-                    >
-                      <div className="w-12 h-12 rounded-full border border-emerald-500/30 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all">
-                        👍
-                      </div>
-                      <span className="text-[7px] font-syncopate text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Útil</span>
-                    </button>
-                    <button 
-                      onClick={() => setFeedback('Ajuste crítico registrado para el próximo ciclo.')} 
-                      className="group flex flex-col items-center gap-2"
-                    >
-                      <div className="w-12 h-12 rounded-full border border-rose-500/30 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-black transition-all">
-                        👎
-                      </div>
-                      <span className="text-[7px] font-syncopate text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Ajustar</span>
-                    </button>
+                    {!loading && (
+                        <div className="p-8 bg-white/5 border border-white/10 rounded-[2rem] text-center space-y-6 glow-card">
+                          <p className="text-[9px] font-syncopate text-gray-500 uppercase tracking-widest">¿Ha sido útil esta resolución?</p>
+                          <div className="flex justify-center gap-6">
+                            <button
+                              onClick={() => setFeedback('Sincronía reforzada. Datos guardados.')}
+                              className="group flex flex-col items-center gap-2"
+                            >
+                              <div className="w-12 h-12 rounded-full border border-emerald-500/30 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all">
+                                👍
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => setFeedback('Ajuste crítico registrado para el próximo ciclo.')}
+                              className="group flex flex-col items-center gap-2"
+                            >
+                              <div className="w-12 h-12 rounded-full border border-rose-500/30 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-black transition-all">
+                                👎
+                              </div>
+                            </button>
+                          </div>
+                          {feedback && (
+                            <p className="text-[9px] font-syncopate text-platinum-cyan animate-pulse uppercase tracking-widest">
+                              {feedback}
+                            </p>
+                          )}
+                        </div>
+                    )}
                   </div>
-                  {feedback && (
-                    <p className="text-[9px] font-syncopate text-platinum-cyan animate-pulse uppercase tracking-widest">
-                      {feedback}
-                    </p>
-                  )}
-                </div>
+                )}
+
+                {loading && !result && (
+                     <div className="flex flex-col items-center justify-center space-y-4 py-10">
+                       <div className="relative w-16 h-16">
+                          <div className="absolute inset-0 border-2 border-champagne-gold/20 rounded-full"></div>
+                          <div className="absolute inset-0 border-t-2 border-champagne-gold rounded-full animate-spin"></div>
+                       </div>
+                       <p className="font-syncopate text-[7px] tracking-[0.4em] text-champagne-gold uppercase animate-pulse">
+                         Inicializando...
+                       </p>
+                    </div>
+                )}
               </div>
             )}
           </div>
@@ -280,7 +308,9 @@ const App: React.FC = () => {
 
         {activeTab === 'STATS' && (
           <div className="max-w-5xl mx-auto">
-            <StatsView />
+             <Suspense fallback={<div className="text-center text-champagne-gold animate-pulse">Cargando Estadísticas...</div>}>
+                <StatsView />
+             </Suspense>
           </div>
         )}
       </main>

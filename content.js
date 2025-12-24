@@ -1,6 +1,6 @@
 
 /**
- * CHALAMANDRA - Extractor de Contexto Dialéctico V1.6.2
+ * CHALAMANDRA - Extractor de Contexto Dialéctico V1.6.3
  */
 
 function extractOptimalText() {

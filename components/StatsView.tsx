@@ -1,8 +1,10 @@
 
-import React, { useEffect, useState } from 'react';
-import { MagistralStats } from '../types';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
+import { MagistralStats, DialecticResult } from '../types';
 import { getMagistralStats, ACHIEVEMENTS } from '../services/achievementService';
 import { ASSETS } from '../constants';
+
+const HistoryList = lazy(() => import('./HistoryList'));
 
 const StatsView: React.FC = () => {
   const [stats, setStats] = useState<MagistralStats>({
@@ -12,8 +14,20 @@ const StatsView: React.FC = () => {
     achievements: []
   });
 
+  const [history, setHistory] = useState<DialecticResult[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   useEffect(() => {
     getMagistralStats().then(setStats);
+
+    const chromeApi = (window as any).chrome;
+    if (chromeApi?.storage?.local) {
+        chromeApi.storage.local.get(['history'], (result: any) => {
+            if (result.history) {
+                setHistory(result.history);
+            }
+        });
+    }
   }, []);
 
   const efficiency = stats.totalAnalyses > 0 
@@ -66,6 +80,24 @@ const StatsView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* History Section Toggle */}
+      <div className="text-center">
+          <button
+             onClick={() => setShowHistory(!showHistory)}
+             className="px-6 py-3 border border-white/10 rounded-xl text-[9px] font-syncopate uppercase tracking-widest text-gray-500 hover:text-white hover:border-white/30 transition-all"
+          >
+              {showHistory ? 'Ocultar Archivos' : 'Ver Historial Operativo'}
+          </button>
+      </div>
+
+      {showHistory && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <Suspense fallback={<div className="text-center text-gray-600">Cargando Archivos...</div>}>
+                 <HistoryList history={history} />
+             </Suspense>
+          </div>
+      )}
 
       <div className="space-y-10">
         <div className="flex items-center gap-6">

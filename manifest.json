@@ -2,7 +2,7 @@
 {
   "manifest_version": 3,
   "name": "CHALAMANDRA: IA Dialéctica Élite",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Protocolo Hegel-Trinity Multimodal. Híbrido Nano + Pro con extracción de contexto optimizada.",
   "icons": {
     "128": "assets/icons/icon128.png"
@@ -19,7 +19,8 @@
     "storage",
     "contextMenus",
     "notifications",
-    "geolocation"
+    "geolocation",
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -27,11 +28,5 @@
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ]
+  }
 }
