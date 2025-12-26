@@ -17,7 +17,6 @@ export async function runSynthesis(thesis: string, antithesis: string) {
     required: ["text", "level", "alignment"]
   };
 
-  // Fix: Extract the text from the result object before parsing
   const result = await callCloudGemini(prompt, {
     systemInstruction,
     temperature: 0.7,
