@@ -2,6 +2,14 @@
 import { Type } from "@google/genai";
 import { callCloudGemini } from "../geminiService";
 
+function cleanJson(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (match) {
+    return match[1];
+  }
+  return text;
+}
+
 export async function runSynthesis(thesis: string, antithesis: string) {
   const prompt = `Tesis de CHOLA: "${thesis}". Antítesis de MALANDRA: "${antithesis}". Fusiona ambas en un camino óptimo y sofisticado.`;
   
@@ -17,7 +25,6 @@ export async function runSynthesis(thesis: string, antithesis: string) {
     required: ["text", "level", "alignment"]
   };
 
-  // Fix: Extract the text from the result object before parsing
   const result = await callCloudGemini(prompt, {
     systemInstruction,
     temperature: 0.7,
@@ -26,7 +33,8 @@ export async function runSynthesis(thesis: string, antithesis: string) {
   });
 
   try {
-    return JSON.parse(result.text);
+    const cleanedText = cleanJson(result.text);
+    return JSON.parse(cleanedText);
   } catch (e) {
     console.error("JSON Parse error in Fresa:", result.text);
     return { text: result.text, level: 3, alignment: 85 };
