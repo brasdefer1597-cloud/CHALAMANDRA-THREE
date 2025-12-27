@@ -11,7 +11,7 @@
     "default_title": "Abrir Command Center"
   },
   "side_panel": {
-    "default_path": "index.html"
+    "default_path": "src/sidepanel/index.html"
   },
   "permissions": [
     "sidePanel",
@@ -24,14 +24,23 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "src/background/index.js",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["src/content/index.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "src/sidepanel/*"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

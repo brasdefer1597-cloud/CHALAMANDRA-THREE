@@ -1,15 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppTab, DialecticResult } from './types';
-import { ASSETS, PERSONAS } from './constants';
-import * as ai from './services/geminiService';
-import { runThesis } from './services/hegel/chola';
-import { runAntithesis } from './services/hegel/malandra';
-import { runSynthesis } from './services/hegel/fresa';
+import { AppTab, DialecticResult } from '../utils/types';
+import { ASSETS, PERSONAS } from '../utils/constants';
+import * as ai from '../services/geminiService';
+import { runThesis } from '../services/hegel/chola';
+import { runAntithesis } from '../services/hegel/malandra';
+import { runSynthesis } from '../services/hegel/fresa';
 
 // Components
-import DialecticDisplay from './components/DialecticDisplay';
-import StatsView from './components/StatsView';
+import DialecticDisplay from '../components/DialecticDisplay';
+import StatsView from '../components/StatsView';
+
+import './global.css';
 
 const App: React.FC = () => {
   const chromeApi = (window as any).chrome;
@@ -127,7 +129,7 @@ const App: React.FC = () => {
       <div className="scanner fixed top-0 left-0 w-full z-50 pointer-events-none opacity-20" />
       
       {/* 1. HEADER: Tab Selector */}
-      <header className="flex-none border-b border-white/5 bg-obsidian-void/80 backdrop-blur-xl z-40">
+      <header className="flex-none header-blur z-40">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse"></div>
@@ -135,7 +137,7 @@ const App: React.FC = () => {
           </div>
           <button 
             onClick={handlePageExtraction}
-            className="text-[8px] font-syncopate text-accent-cyan/60 hover:text-accent-cyan uppercase tracking-widest transition-colors"
+            className="text-[8px] font-syncopate text-accent-cyan opacity-60 hover:opacity-100 uppercase tracking-widest transition-all"
           >
             Extract Context
           </button>
@@ -150,12 +152,9 @@ const App: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-2 px-3 text-[11px] font-syncopate font-bold uppercase transition-all duration-300 relative ${activeTab === tab.id ? 'text-accent-cyan' : 'text-text-secondary hover:text-white'}`}
+              className={`nav-btn ${activeTab === tab.id ? 'active' : ''}`}
             >
               {tab.label}
-              {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-accent-cyan shadow-[0_0_10px_#00FFFF]"></div>
-              )}
             </button>
           ))}
         </nav>
@@ -164,7 +163,7 @@ const App: React.FC = () => {
       {/* 2. MAIN: ContentView */}
       <main className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {activeTab === 'DIALECTIC' && (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-3">
             {!loading && !result && (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
                 <div className="mb-4">{ASSETS.LOGO}</div>
@@ -174,23 +173,27 @@ const App: React.FC = () => {
             )}
 
             {loading && (
-              <div className="py-12 space-y-8 animate-pulse">
+              <div className="py-20 flex flex-col gap-3 animate-pulse">
                 <div className="flex justify-between items-center gap-2">
                    {['THESIS', 'ANTITHESIS', 'SYNTHESIS'].map((step, i) => (
                      <div key={step} className="flex-1 flex flex-col items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] ${currentStep === step ? 'border-accent-cyan text-accent-cyan shadow-[0_0_10px_#00FFFF]' : 'border-white/5 text-gray-700'}`}>
+                        <div style={{
+                          width: '2rem', height: '2rem', borderRadius: '50%',
+                          border: currentStep === step ? '2px solid var(--accent-cyan)' : '2px solid rgba(255,255,255,0.05)',
+                          color: currentStep === step ? 'var(--accent-cyan)' : 'gray',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px'
+                        }}>
                           {i+1}
                         </div>
                         <span className="text-[7px] font-syncopate tracking-widest">{step}</span>
                      </div>
                    ))}
                 </div>
-                <div className="h-32 bg-white/5 rounded-2xl border border-white/5"></div>
               </div>
             )}
 
             {!loading && result && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="animate-fade-in">
                 <DialecticDisplay result={result} />
                 
                 {feedback && (
@@ -207,10 +210,6 @@ const App: React.FC = () => {
 
         {activeTab === 'VISION' && (
           <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
-            <svg className="w-12 h-12 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
             <p className="text-[9px] font-syncopate uppercase tracking-widest">Vision Mode Locked</p>
             <p className="text-[7px] font-main mt-1 uppercase tracking-widest">Protocol V1.7 Prerequisite</p>
           </div>
@@ -218,9 +217,6 @@ const App: React.FC = () => {
 
         {activeTab === 'AUDIO' && (
           <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
-            <svg className="w-12 h-12 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
             <p className="text-[9px] font-syncopate uppercase tracking-widest">Audio Stream Offline</p>
             <p className="text-[7px] font-main mt-1 uppercase tracking-widest">Encrypted Live Link Required</p>
           </div>
@@ -230,7 +226,7 @@ const App: React.FC = () => {
       </main>
 
       {/* 3. FOOTER: QuickAction Bar */}
-      <footer className="flex-none p-3 border-t border-white/5 bg-obsidian-void/90 backdrop-blur-xl">
+      <footer className="flex-none p-4 header-blur">
         <div className="flex gap-2 items-end">
           <div className="flex-1 relative group">
             <textarea
@@ -243,28 +239,18 @@ const App: React.FC = () => {
                 }
               }}
               placeholder="Análisis rápido..."
-              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-accent-cyan/40 transition-all resize-none min-h-[44px] max-h-32 font-main placeholder:text-white/10"
+              className="w-full input-area h-12"
             />
-            <div className="absolute bottom-2 right-2 flex items-center gap-2 opacity-40 group-focus-within:opacity-100 transition-opacity">
-               <button 
-                 onClick={() => setUseThinking(!useThinking)}
-                 className={`text-[8px] font-syncopate border px-1.5 py-0.5 rounded ${useThinking ? 'text-accent-magenta border-accent-magenta/50' : 'text-gray-600 border-white/10'}`}
-               >
-                 DEEP
-               </button>
-            </div>
           </div>
           <button 
             onClick={handleQuickSubmit}
             disabled={!quickInput.trim() || loading}
-            className="w-11 h-11 flex items-center justify-center rounded-xl bg-accent-cyan text-black hover:bg-white disabled:opacity-20 disabled:grayscale transition-all shadow-[0_0_15px_rgba(0,255,255,0.2)]"
+            className="action-btn w-12 h-12"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
+            ➜
           </button>
         </div>
-        <div className="mt-2 text-[6px] font-syncopate text-gray-800 tracking-[0.5em] text-center uppercase">
+        <div className="mt-2 text-[6px] font-syncopate text-gray-600 tracking-[0.5em] text-center uppercase">
           Magistral Decox // Status: {loading ? 'Sincronizando' : 'Operativo'}
         </div>
       </footer>

@@ -1,0 +1,190 @@
+
+:root {
+  --bg-obsidian: #121212;
+  --bg-obsidian-translucent: rgba(18, 18, 18, 0.8);
+  --bg-obsidian-deep: #0a0a0a;
+  --bg-card: rgba(255, 255, 255, 0.05);
+
+  --accent-cyan: #00FFFF;
+  --accent-magenta: #FF00FF;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+
+  --font-syncopate: 'Syncopate', sans-serif;
+  --font-main: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Reset & Base */
+body {
+  margin: 0;
+  background-color: var(--bg-obsidian);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  overflow: hidden;
+}
+
+/* Utility Emulation (for quick refactor compatibility) */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.p-4 { padding: 1rem; }
+.py-20 { padding-top: 5rem; padding-bottom: 5rem; }
+.w-full { width: 100%; }
+.h-screen { height: 100vh; }
+.h-full { height: 100%; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.opacity-20 { opacity: 0.2; }
+.opacity-40 { opacity: 0.4; }
+.uppercase { text-transform: uppercase; }
+.text-center { text-align: center; }
+.cursor-pointer { cursor: pointer; }
+
+/* Semantic Classes */
+.bg-obsidian-void { background-color: var(--bg-obsidian); }
+.text-accent-cyan { color: var(--accent-cyan); }
+.text-accent-magenta { color: var(--accent-magenta); }
+.text-white { color: var(--text-primary); }
+.text-gray-400 { color: #9ca3af; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-600 { color: #4b5563; }
+
+.font-syncopate { font-family: var(--font-syncopate); }
+.font-mono { font-family: var(--font-mono); }
+.font-bold { font-weight: bold; }
+
+/* Custom Components */
+.scanner {
+  background: linear-gradient(to bottom, transparent 50%, var(--accent-cyan) 50%);
+  background-size: 100% 4px;
+  animation: scan 4s linear infinite;
+}
+
+@keyframes scan {
+  from { background-position: 0 0; }
+  to { background-position: 0 100%; }
+}
+
+.header-blur {
+  background-color: var(--bg-obsidian-translucent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nav-btn {
+  position: relative;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-syncopate);
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-btn.active {
+  color: var(--accent-cyan);
+}
+
+.nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: rgba(0, 255, 255, 0.3);
+}
+
+.synthesis-card {
+  background: linear-gradient(135deg, rgba(0,255,255,0.2), rgba(255,0,255,0.2));
+  padding: 1px;
+  border-radius: 1rem;
+}
+
+.synthesis-inner {
+  background-color: var(--bg-obsidian);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+.input-area {
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  font-family: var(--font-main);
+  font-size: 12px;
+  resize: none;
+}
+
+.input-area:focus {
+  outline: none;
+  border-color: rgba(0, 255, 255, 0.4);
+}
+
+.action-btn {
+  background-color: var(--accent-cyan);
+  color: black;
+  border: none;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+  cursor: pointer;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  filter: grayscale(100%);
+  cursor: not-allowed;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* Animations */
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.animate-fade-in { animation: fadeIn 0.5s ease-out; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

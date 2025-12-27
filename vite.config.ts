@@ -1,3 +1,4 @@
+
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -16,7 +17,23 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, './src'),
+        }
+      },
+      build: {
+        outDir: 'dist',
+        rollupOptions: {
+          input: {
+            sidepanel: path.resolve(__dirname, 'src/sidepanel/index.html'),
+            welcome: path.resolve(__dirname, 'src/sidepanel/welcome.html'),
+            background: path.resolve(__dirname, 'src/background/index.js'),
+            content: path.resolve(__dirname, 'src/content/index.js'),
+          },
+          output: {
+            entryFileNames: 'assets/[name].js',
+            chunkFileNames: 'assets/[name]-[hash].js',
+            assetFileNames: 'assets/[name]-[hash].[ext]',
+          }
         }
       }
     };
