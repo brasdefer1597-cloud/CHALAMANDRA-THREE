@@ -11,7 +11,11 @@
     "default_title": "Abrir Command Center"
   },
   "side_panel": {
-    "default_path": "src/sidepanel/index.html"
+    "default_path": "src/sidepanel/sidepanel.html"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": false
   },
   "permissions": [
     "sidePanel",
@@ -39,7 +43,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "src/sidepanel/*"],
+      "resources": ["assets/*", "src/sidepanel/*", "src/options/*"],
       "matches": ["<all_urls>"]
     }
   ]

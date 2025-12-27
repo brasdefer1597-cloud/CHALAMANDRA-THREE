@@ -2,16 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { AppTab, DialecticResult } from '../utils/types';
 import { ASSETS, PERSONAS } from '../utils/constants';
-import * as ai from '../services/geminiService';
-import { runThesis } from '../services/hegel/chola';
-import { runAntithesis } from '../services/hegel/malandra';
-import { runSynthesis } from '../services/hegel/fresa';
+import * as ai from './services/geminiService';
+import { runThesis } from './services/hegel/chola';
+import { runAntithesis } from './services/hegel/malandra';
+import { runSynthesis } from './services/hegel/fresa';
 
 // Components
-import DialecticDisplay from '../components/DialecticDisplay';
-import StatsView from '../components/StatsView';
+import DialecticDisplay from './components/DialecticDisplay';
+import StatsView from './components/StatsView';
 
-import './global.css';
+import './sidepanel.css';
 
 const App: React.FC = () => {
   const chromeApi = (window as any).chrome;

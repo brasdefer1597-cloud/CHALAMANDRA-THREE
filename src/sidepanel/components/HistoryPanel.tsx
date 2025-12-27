@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AnalysisHistoryItem } from '../utils/types';
+import { AnalysisHistoryItem } from '../../utils/types';
 
 interface HistoryPanelProps {
   history: AnalysisHistoryItem[];

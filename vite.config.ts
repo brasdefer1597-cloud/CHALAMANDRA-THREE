@@ -24,8 +24,9 @@ export default defineConfig(({ mode }) => {
         outDir: 'dist',
         rollupOptions: {
           input: {
-            sidepanel: path.resolve(__dirname, 'src/sidepanel/index.html'),
+            sidepanel: path.resolve(__dirname, 'src/sidepanel/sidepanel.html'),
             welcome: path.resolve(__dirname, 'src/sidepanel/welcome.html'),
+            options: path.resolve(__dirname, 'src/options/options.html'),
             background: path.resolve(__dirname, 'src/background/index.js'),
             content: path.resolve(__dirname, 'src/content/index.js'),
           },

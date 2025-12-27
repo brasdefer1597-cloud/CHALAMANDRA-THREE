@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { MagistralStats } from '../utils/types';
+import { MagistralStats } from '../../utils/types';
 import { getMagistralStats, ACHIEVEMENTS } from '../services/achievementService';
-import { ASSETS } from '../utils/constants';
+import { ASSETS } from '../../utils/constants';
 
 const StatsView: React.FC = () => {
   const [stats, setStats] = useState<MagistralStats | null>(null);

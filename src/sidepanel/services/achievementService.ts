@@ -1,5 +1,5 @@
 
-import { MagistralStats } from '../utils/types';
+import { MagistralStats } from '../../utils/types';
 
 export const ACHIEVEMENTS = [
   { id: 'first_blood', name: 'First Synthesis', icon: '🩸', condition: (s: MagistralStats) => s.totalAnalyses >= 1 },
