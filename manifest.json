@@ -2,7 +2,7 @@
 {
   "manifest_version": 3,
   "name": "CHALAMANDRA: IA Dialéctica Élite",
-  "version": "1.6.2",
+  "version": "1.7.0",
   "description": "Protocolo Hegel-Trinity Multimodal. Híbrido Nano + Pro con extracción de contexto optimizada.",
   "icons": {
     "128": "assets/icons/icon128.png"
@@ -11,7 +11,11 @@
     "default_title": "Abrir Command Center"
   },
   "side_panel": {
-    "default_path": "index.html"
+    "default_path": "src/sidepanel/sidepanel.html"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": false
   },
   "permissions": [
     "sidePanel",
@@ -22,16 +26,26 @@
     "geolocation"
   ],
   "host_permissions": [
+    "https://chalamandra.vercel.app/*",
     "<all_urls>"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "src/background/index.js",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["src/content/index.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "src/sidepanel/*", "src/options/*"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

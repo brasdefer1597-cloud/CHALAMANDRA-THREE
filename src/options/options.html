@@ -1,0 +1,26 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chalamandra Configuration</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>CHALAMANDRA</h1>
+    <p class="subtitle">System Configuration</p>
+
+    <div class="card">
+      <label for="apiKey">Gemini API Key</label>
+      <input type="password" id="apiKey" placeholder="Enter your API Key">
+      <p class="hint">Stored securely in local storage. Never shared.</p>
+    </div>
+
+    <button id="saveBtn" class="btn">Save Configuration</button>
+    <div id="status" class="status"></div>
+  </div>
+  <script src="options.js" type="module"></script>
+</body>
+</html>

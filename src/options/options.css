@@ -1,0 +1,91 @@
+
+:root {
+  --bg-obsidian: #121212;
+  --accent-cyan: #00FFFF;
+  --text-primary: #FFFFFF;
+}
+
+body {
+  background-color: var(--bg-obsidian);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+h1 {
+  font-family: 'Syncopate', sans-serif;
+  letter-spacing: 0.3em;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  margin-bottom: 2rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  color: #9ca3af;
+}
+
+input {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem;
+  color: white;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+}
+
+.hint {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+.btn {
+  margin-top: 1.5rem;
+  background: var(--accent-cyan);
+  color: black;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  width: 100%;
+}
+
+.status {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  height: 1rem;
+}
