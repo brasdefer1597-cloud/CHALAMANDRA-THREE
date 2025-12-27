@@ -1,75 +1,94 @@
+
 # CHALAMANDRA: IA Dialéctica Élite
 
-**Protocolo Hegel-Trinity Multimodal sobre Manifest V3.**
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.6.2-cyan.svg)
 
-Chalamandra es una extensión de navegador de clase mundial diseñada para transformar el consumo pasivo de información en un proceso activo de pensamiento crítico. Implementa un análisis dialéctico (Tesis, Antítesis, Síntesis) para deconstruir narrativas y aumentar la cognición del usuario.
+Chalamandra es una extensión de Chrome que implementa el **Protocolo Hegel-Trinity Multimodal**, un sistema híbrido (Nano + Pro) diseñado para sintetizar información web mediante un proceso dialéctico (Tesis, Antítesis, Síntesis).
 
----
+## 📂 Arquitectura de Archivos (Elite File Architecture)
 
-### 🧠 Arquitectura y Flujo de Datos del Sistema
-
-El sistema opera sobre una arquitectura desacoplada y segura, orquestada por un service worker y mediada por un proxy de backend para proteger las credenciales de la API.
-
-```mermaid
-graph TD
-    subgraph "Navegador del Usuario"
-        A[Página Web Activa]
-        B(Usuario)
-    end
-
-    subgraph "Extensión Chalamandra (Cliente)"
-        C(Content Script)
-        D(Background Service Worker - Orquestador)
-        E(Side Panel - Command Center UI)
-    end
-
-    subgraph "Backend Seguro (Vercel/Cloudflare)"
-        F[Proxy Endpoint]
-    end
-
-    subgraph "Google Cloud"
-        G[Gemini API]
-    end
-
-    %% Flujos de Interacción
-    B -- 1. Selecciona Texto & Clic Derecho --> D
-    D -- 2. Abre el Panel y Envía Texto Seleccionado --> E
-    
-    B -- 3. Abre el Panel Directamente --> D
-    D -- 4. Abre el Panel --> E
-
-    E -- 5. Solicita Texto Completo de la Página --> D
-    D -- 6. Reenvía Petición de Extracción --> C
-    C -- 7. Extrae Texto del DOM y Responde --> D
-    D -- 8. Devuelve Texto Extraído --> E
-
-    E -- 9. Inicia Análisis (con texto, imagen, etc.) --> D
-    D -- 10. Llama al Endpoint Seguro con el prompt --> F
-    F -- 11. Adjunta API Key del Servidor y Llama a la API --> G
-    G -- 12. Procesa y Devuelve Resultado --> F
-    F -- 13. Devuelve Resultado a la Extensión --> D
-    D -- 14. Reenvía Resultado Final --> E
-    E -- 15. Muestra Síntesis al Usuario --> B
+```
+CHALAMANDRA_EXTENSION/
+│
+├── 📜 manifest.json           # EL CEREBRO. Configuración central.
+├── 📜 README.md               # Documentación.
+├── 📜 LICENSE                 # Licencia MIT.
+├── 📜 .gitignore              # Configuración de Git.
+│
+├── 📂 assets/                 # RECURSOS
+│   ├── 📂 icons/              # Iconos (16, 48, 128px)
+│   ├── 📂 images/             # Logos y gráficos
+│   └── 📂 fonts/              # Syncopate & Inter
+│
+└── 📂 src/                    # CÓDIGO FUENTE
+    │
+    ├── 📂 background/         # SERVICE WORKER
+    │   └── index.js           # Orquestador de eventos.
+    │
+    ├── 📂 content/            # CONTENT SCRIPT
+    │   └── index.js           # Extractor de contexto DOM.
+    │
+    ├── 📂 sidepanel/          # INTERFAZ (React + Vite)
+    │   ├── sidepanel.html     # Entry point.
+    │   ├── sidepanel.css      # Estilos "Obsidian Void".
+    │   ├── sidepanel.tsx      # Lógica de montaje React.
+    │   ├── App.tsx            # Componente raíz.
+    │   ├── 📂 components/     # UI Components (Stats, History, etc).
+    │   └── 📂 services/       # Lógica Hegel (Chola, Malandra, Fresa).
+    │
+    ├── 📂 options/            # CONFIGURACIÓN
+    │   ├── options.html       # Página de opciones.
+    │   ├── options.css        # Estilos.
+    │   └── options.js         # Lógica de guardado de API Key.
+    │
+    └── 📂 utils/              # UTILIDADES
+        ├── storage.js         # Wrapper de chrome.storage.
+        ├── types.ts           # Definiciones TypeScript.
+        └── constants.tsx      # Constantes globales.
 ```
 
-### ✨ Características Principales
+## 🚀 Instalación y Configuración
 
-*   **Análisis Dialéctico de Texto:** Descompone cualquier texto seleccionado o página completa en Tesis, Antítesis y Síntesis.
-*   **Protocolo Multimodal:** Capacidades para analizar imágenes (Visión) y audio (Live API).
-*   **Grounding Geográfico:** Integra `geolocation` para análisis contextuales basados en la ubicación del usuario.
-*   **Arquitectura Segura:** Las llamadas a la API de Gemini se realizan a través de un proxy de backend para nunca exponer las claves en el lado del cliente.
-*   **UI Persistente:** Utiliza la API `sidePanel` de Chrome para un "Command Center" robusto y siempre accesible.
+1.  **Clonar el repositorio**:
+    ```bash
+    git clone https://github.com/tu-repo/chalamandra.git
+    cd chalamandra
+    ```
 
-### 🛠️ Tech Stack
+2.  **Instalar dependencias**:
+    ```bash
+    npm install
+    ```
 
-*   **Core:** Manifest V3, JavaScript (ESM)
-*   **UI:** React (v19), TailwindCSS
-*   **Backend:** Proxy sin servidor (Vercel, Cloudflare Workers)
-*   **IA:** Google Gemini API (Pro, Nano, Veo)
+3.  **Configurar Variables de Entorno**:
+    Crear un archivo `.env` en la raíz (opcional para desarrollo):
+    ```env
+    GEMINI_API_KEY=tu_api_key_aqui
+    ```
 
-### 🚀 Instalación para Desarrollo
+4.  **Compilar**:
+    ```bash
+    npm run build
+    ```
 
-1.  Clona este repositorio.
-2.  Abre Chrome y ve a `chrome://extensions`.
-3.  Activa el "Modo de desarrollador".
-4.  Haz clic en "Cargar descomprimida" y selecciona la carpeta raíz del proyecto.
+5.  **Cargar en Chrome**:
+    *   Ir a `chrome://extensions/`
+    *   Activar "Modo de desarrollador".
+    *   Clic en "Cargar descomprimida".
+    *   Seleccionar la carpeta `dist/` generada.
+
+## 🧠 Protocolo Dialéctico
+
+1.  **TESIS (Chola)**: Análisis de patrones y contexto histórico (Gemini Nano/Flash).
+2.  **ANTÍTESIS (Malandra)**: Generación de contra-argumentos y disrupción (Gemini Pro).
+3.  **SÍNTESIS (Fresa)**: Resolución dialéctica y elevación conceptual (Gemini Pro).
+
+## 🛡️ Seguridad y Privacidad
+
+*   **CSP Estricto**: Solo scripts locales y WASM evaluados de forma segura.
+*   **Almacenamiento Local**: La API Key se guarda en `chrome.storage.local` y nunca sale del entorno seguro.
+*   **Sanitización**: Todo input/output del LLM es sanitizado antes del renderizado para prevenir XSS.
+
+---
+*Magistral Decox Systems // 2025*

@@ -11,18 +11,18 @@ const StatsView: React.FC = () => {
     getMagistralStats().then(setStats);
   }, []);
 
-  if (!stats) return <div className="p-4 text-center text-xs font-mono text-gray-600">Loading Neuro-metrics...</div>;
+  if (!stats) return <div style={{textAlign: 'center', padding: '2rem', fontSize: '10px', color: '#6b7280'}}>Loading Neuro-metrics...</div>;
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
-      <div className="text-center">
-        <h2 className="text-[10px] font-syncopate text-accent-cyan uppercase tracking-widest mb-2">Magistral Analytics</h2>
-        <div className="flex justify-center gap-4 text-xs font-mono text-gray-400">
-           <div className="bg-white/5 px-3 py-1 rounded-full border border-white/10">
-             TOTAL: <span className="text-white">{stats.totalAnalyses}</span>
+    <div className="fade-in" style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+      <div style={{textAlign: 'center'}}>
+        <h2 style={{fontFamily: 'var(--font-syncopate)', fontSize: '10px', color: 'var(--accent-cyan)', letterSpacing: '0.3em', marginBottom: '0.5rem'}}>Magistral Analytics</h2>
+        <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '10px', fontFamily: 'var(--font-mono)'}}>
+           <div style={{background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '1rem'}}>
+             TOTAL: <span style={{color: 'white'}}>{stats.totalAnalyses}</span>
            </div>
-           <div className="bg-white/5 px-3 py-1 rounded-full border border-white/10">
-             CLOUD: <span className="text-white">{stats.cloudAnalyses}</span>
+           <div style={{background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '1rem'}}>
+             CLOUD: <span style={{color: 'white'}}>{stats.cloudAnalyses}</span>
            </div>
         </div>
       </div>
@@ -31,30 +31,34 @@ const StatsView: React.FC = () => {
         {ACHIEVEMENTS.map(ach => {
           const unlocked = stats.achievements.includes(ach.id);
           return (
-            <div key={ach.id} className="aspect-square p-2 rounded-xl border flex flex-col items-center justify-center text-center transition-all"
-                 style={{
-                   backgroundColor: unlocked ? 'rgba(0,255,255,0.1)' : 'rgba(255,255,255,0.05)',
-                   borderColor: unlocked ? 'rgba(0,255,255,0.4)' : 'rgba(255,255,255,0.05)',
-                   opacity: unlocked ? 1 : 0.4,
-                   filter: unlocked ? 'none' : 'grayscale(100%)'
-                 }}>
-               <div className="text-xl mb-1">{ach.icon}</div>
-               <p className="text-[6px] font-syncopate uppercase text-white/80 leading-tight">{ach.name}</p>
+            <div key={ach.id} style={{
+              aspectRatio: '1',
+              padding: '0.5rem',
+              borderRadius: '0.75rem',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: unlocked ? 'rgba(0,255,255,0.1)' : 'rgba(255,255,255,0.02)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+              opacity: unlocked ? 1 : 0.4,
+              filter: unlocked ? 'none' : 'grayscale(100%)'
+            }}>
+               <div style={{fontSize: '1.2rem', marginBottom: '0.25rem'}}>{ach.icon}</div>
+               <p style={{fontSize: '6px', fontFamily: 'var(--font-syncopate)', textTransform: 'uppercase', lineHeight: 1.2}}>{ach.name}</p>
             </div>
           );
         })}
       </div>
 
-      <div className="card relative overflow-hidden">
-         <p className="text-[8px] font-mono text-gray-500 mb-1">CURRENT RANK</p>
-         <p className="text-sm font-bold text-white uppercase tracking-widest font-syncopate">
+      <div className="card" style={{position: 'relative', overflow: 'hidden'}}>
+         <p style={{fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#6b7280', margin: 0}}>CURRENT RANK</p>
+         <p style={{fontSize: '14px', fontWeight: 'bold', color: 'white', fontFamily: 'var(--font-syncopate)', letterSpacing: '0.2em', margin: '0.25rem 0 0.5rem 0'}}>
            {stats.totalAnalyses < 10 ? 'Neophyte' : stats.totalAnalyses < 50 ? 'Dialectician' : 'Hegelian Master'}
          </p>
-         <div className="w-full bg-white/10 h-1 mt-3 rounded-full overflow-hidden">
-            <div
-              className="h-full"
-              style={{ width: `${(stats.totalAnalyses % 50) * 2}%`, background: 'linear-gradient(to right, var(--accent-cyan), var(--accent-magenta))' }}
-            ></div>
+         <div style={{width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden'}}>
+            <div style={{
+              height: '100%',
+              width: `${(stats.totalAnalyses % 50) * 2}%`,
+              background: 'linear-gradient(to right, var(--accent-cyan), var(--accent-magenta))'
+            }} />
          </div>
       </div>
     </div>

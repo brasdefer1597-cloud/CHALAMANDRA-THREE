@@ -1,5 +1,6 @@
 
 import { MagistralStats } from '../../utils/types';
+import { storage } from '../../utils/storage';
 
 export const ACHIEVEMENTS = [
   { id: 'first_blood', name: 'First Synthesis', icon: '🩸', condition: (s: MagistralStats) => s.totalAnalyses >= 1 },
@@ -11,9 +12,8 @@ export const ACHIEVEMENTS = [
 ];
 
 export async function getMagistralStats(): Promise<MagistralStats> {
-  // @ts-ignore
-  const storage = await chrome.storage.local.get(['magistral_stats']);
-  const stats = storage.magistral_stats || {
+  const data = await storage.get(['magistral_stats']);
+  const stats = data.magistral_stats || {
     totalAnalyses: 0,
     localAnalyses: 0,
     cloudAnalyses: 0,
@@ -33,8 +33,7 @@ export async function getMagistralStats(): Promise<MagistralStats> {
 
   if (changed) {
     const newStats = { ...stats, achievements: newAchievements };
-    // @ts-ignore
-    await chrome.storage.local.set({ magistral_stats: newStats });
+    await storage.set({ magistral_stats: newStats });
     return newStats;
   }
 
